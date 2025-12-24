@@ -9,7 +9,6 @@ from datetime import datetime
 from app.db.base import Base
 
 class Collection(Base):
-    """Collection of papers"""
     __tablename__ = "collections"
     
     id = Column(Integer, primary_key=True, index=True)

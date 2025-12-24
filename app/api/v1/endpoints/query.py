@@ -47,12 +47,11 @@ async def ask_question(
     )
     
     # Log query
-    from app.repositories.paper import query_log_repository
+    from app.repositories.query_log import query_log_repository
     query_log_repository.create(db, {
         'collection_id': rag_query.collection_id,
         'query': rag_query.query,
         'query_type': 'rag',
-        'execution_time': response.execution_time,
     })
     
     return response

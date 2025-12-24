@@ -13,10 +13,7 @@ class CollectionBase(BaseModel):
 
 
 class CollectionCreate(CollectionBase):
-    embedding_model: str = Field(
-        default=settings.EMBEDDING_MODEL_NAME,
-        description="Embedding model to use"
-    )
+    pass
 
 class CollectionUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255)

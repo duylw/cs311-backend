@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, or_, String
 from fastapi import HTTPException, status
 
-from base import BaseRepository
+from app.repositories.base import BaseRepository
 from app.models.paper import Paper
 from datetime import datetime, timedelta
 

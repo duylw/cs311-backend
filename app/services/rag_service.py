@@ -16,7 +16,7 @@ from langchain_core.documents import Document
 from app.schemas.query import RAGResponse
 from app.core.config import settings, config_manager
 
-from app.vector_store.faiss_store_manager import FAISSStoreManager
+from app.vector_store.faiss_store_manager import faiss_manager
 
 class RAGService:
     """Service for RAG-based question answering"""
@@ -55,12 +55,12 @@ class RAGService:
         start_time = time.time()
 
         embedding = OllamaEmbeddings(
-            base_url=settings.OLLAMA_BASE_URL,
+            # base_url=settings.OLLAMA_BASE_URL,
             model=settings.EMBEDDING_MODEL_NAME
         )
 
         # 1. Retrieve relevant chunks
-        vector_store = FAISSStoreManager.get_or_create_store(
+        vector_store = faiss_manager.get_or_create_store(
             collection_id=collection_id,
             embedding=embedding
         )
