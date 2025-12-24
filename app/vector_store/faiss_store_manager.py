@@ -33,14 +33,18 @@ class FAISSStoreManager:
         
         if index_path.with_suffix('.faiss').exists():
             logger.info(f"Loading existing index for collection {collection_id}")
-            store = FAISS.load_local(index_path)
+            store = FAISS.load_local(
+                                        index_path,
+                                        embedding,
+                                        allow_dangerous_deserialization=True
+                                    )
         else:
             logger.info(f"Creating new index for collection {collection_id}")
             
             index = faiss.IndexFlatL2(len(embedding.embed_query("hello world")))
 
             store = FAISS(
-                embedding=embedding,
+                embedding_function=embedding,
                 index=index,
                 docstore=InMemoryDocstore(),
                 index_to_docstore_id={},

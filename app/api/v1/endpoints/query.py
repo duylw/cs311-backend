@@ -31,11 +31,11 @@ async def ask_question(
     # Verify collection exists
     collection = collection_repository.get_or_404(db, rag_query.collection_id)
     
-    if not collection.total_papers:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Collection has no indexed papers. Please index some papers first."
-        )
+    # if not collection.total_papers:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_400_BAD_REQUEST,
+    #         detail="Collection has no indexed papers. Please index some papers first."
+    #     )
     
     # Generate answer
     response = rag_service.query(
@@ -47,12 +47,11 @@ async def ask_question(
     )
     
     # Log query
-    from app.repositories.paper import query_log_repository
+    from app.repositories.query_log import query_log_repository
     query_log_repository.create(db, {
         'collection_id': rag_query.collection_id,
         'query': rag_query.query,
         'query_type': 'rag',
-        'execution_time': response.execution_time,
     })
     
     return response

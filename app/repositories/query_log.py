@@ -21,3 +21,5 @@ class QueryLogRepository(BaseRepository[QueryLog]):
         db.commit()
         db.refresh(db_obj)
         return db_obj
+    
+query_log_repository = QueryLogRepository()

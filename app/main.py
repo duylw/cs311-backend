@@ -31,6 +31,9 @@ async def lifespan(app: FastAPI):
 
     # Create tables
     try:
+        import app.models.collection
+        import app.models.paper
+        import app.models.query_log
         Base.metadata.create_all(bind=engine)
     except Exception:
         logger.exception("Failed to create tables")
