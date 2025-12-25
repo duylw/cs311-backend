@@ -19,7 +19,7 @@ class Paper(Base):
     collection_id = Column(Integer, ForeignKey("collections.id", ondelete="CASCADE"), nullable=False)
     
     # Arxiv Info
-    arxiv_id = Column(String(50), unique=True, nullable=False, index=True)
+    arxiv_id = Column(String(50), nullable=False, index=True)
     title = Column(Text, nullable=False)
     authors = Column(String, nullable=False)  # List of author names
     abstract = Column(Text, nullable=False)

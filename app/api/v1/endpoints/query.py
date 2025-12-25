@@ -2,13 +2,11 @@
 API Endpoints for Search and RAG
 """
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import Optional
-import asyncio
 
 from app.api.deps import get_db
-from app.schemas.query import RAGQuery, RAGResponse, RAGStreamChunk
+from app.schemas.query import RAGQuery, RAGResponse
 from app.services.rag_service import rag_service
 from app.repositories.collection import collection_repository
 

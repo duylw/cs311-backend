@@ -10,6 +10,8 @@ from app.api.v1.router import api_router
 from app.db.session import engine
 from app.db.base import Base
 
+from app.vector_store.pinecone_store_manager import pinecone_manager
+
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -21,19 +23,20 @@ async def lifespan(app: FastAPI):
     logger.info(f"Starting {settings.PROJECT_NAME} v{settings.VERSION}")
     logger.info(f"API documentation: {settings.API_V1_STR}/docs")
     
-    # Initialize FAISS stores
-    from app.vector_store.faiss_store_manager import faiss_manager
-    logger.info("FAISS vector store initialized")
+    # Initialize Pinecone stores
+    from app.vector_store.pinecone_store_manager import pinecone_manager
+    logger.info("Pinecone vector store initialized")
     
     # Log configuration
     logger.info(f"Embedding model: {settings.EMBEDDING_MODEL_NAME}")
     logger.info(f"LLM: {settings.OLLAMA_MODEL}")
 
+    # Load or create Pinecone index
+    logger.info(f"Loading or creating Pinecone index {settings.PINECONE_INDEX_NAME}")
+    pinecone_manager._load_vector_store(index_name=settings.PINECONE_INDEX_NAME)
+
     # Create tables
     try:
-        import app.models.collection
-        import app.models.paper
-        import app.models.query_log
         Base.metadata.create_all(bind=engine)
     except Exception:
         logger.exception("Failed to create tables")
@@ -43,10 +46,8 @@ async def lifespan(app: FastAPI):
     """Run on shutdown"""
     logger.info("Shutting down application")
     
-    # Save FAISS indices
-    from app.vector_store.faiss_store_manager import faiss_manager
-    logger.info("Saving FAISS indices...")
-    faiss_manager.save_all()
+    # Do any cleanup if necessary
+
     logger.info("Application shutdown complete")
 
 # Initialize FastAPI app
