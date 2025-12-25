@@ -2,10 +2,9 @@
 Core Configuration using Pydantic Settings
 """
 from typing import Optional, List
-from pydantic import Field, field_validator
+from pydantic import ConfigDict, Field, field_validator, SecretStr
 from pydantic_settings import BaseSettings
 from pathlib import Path
-import secrets
 
 
 class Settings(BaseSettings):
@@ -16,7 +15,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "Research Paper RAG API"
     VERSION: str = "1.0.0"
     DESCRIPTION: str = "Production RAG system for research papers"
-    
+
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8000"]
     
@@ -29,12 +28,15 @@ class Settings(BaseSettings):
     # Allow any database URL (Postgres, SQLite, etc.) — set via env `DATABASE_URL`.
     DATABASE_URL: Optional[str] = Field(default=None, env="DATABASE_URL")
 
+    # Vector Databse
+    PINECONE_API_KEY: Optional[SecretStr] = Field(default=None, env="PINECONE_API_KEY")
+    PINECONE_INDEX_NAME: Optional[str] = Field(default=None, env="PINECONE_INDEX_NAME")    
+
     # File Storage
     UPLOAD_DIR: Path = Field(default=Path("./data/uploads"))
     PAPERS_DIR: Path = Field(default=Path("./data/papers"))
     PARSED_DIR: Path = Field(default=Path("./data/parsed"))
     IMAGES_DIR: Path = Field(default=Path("./data/images"))
-    FAISS_INDEX_DIR: Path = Field(default=Path("./data/faiss_indices"))
     
     
     # Embedding Model
@@ -46,7 +48,7 @@ class Settings(BaseSettings):
     # LLM Configuration
     LLM_PROVIDER: str = Field(default="ollama", env="LLM_PROVIDER")  # ollama, openai, etc.
     OLLAMA_BASE_URL: str = Field(default="http://localhost:11434", env="OLLAMA_BASE_URL")
-    OLLAMA_MODEL: str = Field(default="llama3.2", env="OLLAMA_MODEL")
+    OLLAMA_MODEL: str = Field(default="gpt-oss:20b", env="OLLAMA_MODEL")
     
     # Chunking Configuration
     CHUNK_SIZE: int = Field(default=1000, env="CHUNK_SIZE")
@@ -60,7 +62,6 @@ class Settings(BaseSettings):
     RETRIEVAL_TOP_K: int = Field(default=5, env="RETRIEVAL_TOP_K")
     RERANK_TOP_K: int = Field(default=10, env="RERANK_TOP_K")
     USE_RERANKING: bool = Field(default=True, env="USE_RERANKING")
-
     
     # PDF Processing
     PDF_EXTRACT_IMAGES: bool = Field(default=True, env="PDF_EXTRACT_IMAGES")
@@ -74,24 +75,16 @@ class Settings(BaseSettings):
     # Rate Limiting
     RATE_LIMIT_PER_MINUTE: int = Field(default=60, env="RATE_LIMIT_PER_MINUTE")
     
-    # Pagination
-    DEFAULT_PAGE_SIZE: int = Field(default=20, env="DEFAULT_PAGE_SIZE")
-    MAX_PAGE_SIZE: int = Field(default=100, env="MAX_PAGE_SIZE")
-    
     # Logging
     LOG_LEVEL: str = Field(default="INFO", env="LOG_LEVEL")
     LOG_FILE: Optional[str] = Field(default="logs/app.log", env="LOG_FILE")
-    
-    # Background Tasks
-    INDEXING_QUEUE_NAME: str = "indexing_queue"
-    SEARCH_QUEUE_NAME: str = "search_queue"
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = True
+    model_config = ConfigDict(
+        env_file=".env",
+        env_file_encoding = "utf-8",
+        case_sensitive = True,
         extra = "ignore"
-
+        )
 
 # Global settings instance
 settings = Settings()
@@ -102,7 +95,6 @@ for directory in [
     settings.PAPERS_DIR,
     settings.PARSED_DIR,
     settings.IMAGES_DIR,
-    settings.FAISS_INDEX_DIR,
 ]:
     directory.mkdir(parents=True, exist_ok=True)
 
@@ -146,7 +138,6 @@ class ConfigManager:
         return {
             "top_k": self._settings.RETRIEVAL_TOP_K,
             "rerank_top_k": self._settings.RERANK_TOP_K,
-            "use_reranking": self._settings.USE_RERANKING,
         }
 
 

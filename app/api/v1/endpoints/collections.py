@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from loguru import logger
 from sqlalchemy.orm import Session
 from typing import List
 
+from app.vector_store.pinecone_store_manager import pinecone_manager
 from app.api.deps import get_db
 from app.schemas.collection import (
     CollectionCreate,
@@ -10,6 +12,8 @@ from app.schemas.collection import (
     CollectionStats
 )
 from app.repositories.collection import collection_repository
+from app.vector_store import pinecone_store_manager
+from app.core.config import settings
 
 router = APIRouter()
 
@@ -20,14 +24,6 @@ async def create_collection(
     db: Session = Depends(get_db)
 ):
     '''Create a new collection'''
-    # Check if collection already exists
-    existing = collection_repository.get_by_name(db, collection.name)
-    if existing:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Collection with this name already exists"
-        )
-    
     # Create collection
     db_collection = collection_repository.create(db, collection.model_dump())
     
@@ -101,10 +97,11 @@ async def delete_collection(
         )
     
     try:
-        # Delete FAISS index
-        from app.vector_store.faiss_store_manager import faiss_manager
-        faiss_manager.delete_store(collection_id)
-    except Exception as e:
-        pass  # Log error if needed
-    
+        pinecone_manager.delete_index_collection(
+            index_name=settings.PINECONE_INDEX_NAME,
+            collection_id=collection_id,
+        )
+    except Exception:
+        logger.exception("Failed to delete collection from Pinecone for collection_id=%s", collection_id)
+
     return None
