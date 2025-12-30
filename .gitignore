@@ -17,3 +17,15 @@ data/
 
 # .env files
 .env
+
+# Logs
+logs/
+
+# Node modules
+node_modules/
+
+# Node packages
+package-lock.json
+package.json
+yarn.lock
+
