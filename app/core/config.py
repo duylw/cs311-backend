@@ -49,6 +49,9 @@ class Settings(BaseSettings):
     LLM_PROVIDER: str = Field(default="ollama", env="LLM_PROVIDER")  # ollama, openai, etc.
     OLLAMA_BASE_URL: str = Field(default="http://localhost:11434", env="OLLAMA_BASE_URL")
     OLLAMA_MODEL: str = Field(default="gpt-oss:20b", env="OLLAMA_MODEL")
+    OLLAMA_API_KEY: Optional[SecretStr] = Field(default=..., env="OLLAMA_API_KEY")
+    LLM_TEMPERATURE: float = Field(default=0.7, env="LLM_TEMPERATURE")
+    LLM_MAX_TOKENS: int = Field(default=2000, env="LLM_MAX_TOKENS")
     
     # Chunking Configuration
     CHUNK_SIZE: int = Field(default=1000, env="CHUNK_SIZE")
@@ -57,12 +60,12 @@ class Settings(BaseSettings):
     # Search Configuration
     ARXIV_MAX_RESULTS: int = Field(default=50, env="ARXIV_MAX_RESULTS")
     ARXIV_DELAY: float = Field(default=1.0, env="ARXIV_DELAY")
-    
+    RERANKING_MODEL: str = Field(default="cross-encoder/ms-marco-MiniLM-L-6-v2", env="RERANKING_MODEL")
     # Retrieval Configuration
     RETRIEVAL_TOP_K: int = Field(default=5, env="RETRIEVAL_TOP_K")
     RERANK_TOP_K: int = Field(default=10, env="RERANK_TOP_K")
     USE_RERANKING: bool = Field(default=True, env="USE_RERANKING")
-    
+    MIN_RERANK_SCORE: float = Field(default=5.0, env="MIN_RERANK_SCORE")
     # PDF Processing
     PDF_EXTRACT_IMAGES: bool = Field(default=True, env="PDF_EXTRACT_IMAGES")
     PDF_EXTRACT_TABLES: bool = Field(default=True, env="PDF_EXTRACT_TABLES")

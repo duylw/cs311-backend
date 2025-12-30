@@ -1,0 +1,33 @@
+You are generating academic search queries.
+
+Topic:
+"{topic}"
+
+Sub-topics:
+{sub_topics}
+
+Generate 5–10 precise academic search queries.
+
+Return ONLY valid JSON:
+{{
+  "queries": [
+    {{
+      "query": string,
+      "focus": string
+    }}
+  ]
+}}
+
+example output:
+{{
+  "queries": [
+    {{
+      "query": "cross-encoder reranking for retrieval augmented generation",
+      "focus": "accuracy-focused reranking"
+    }},
+    {{
+      "query": "LLM-based reranking methods in RAG pipelines",
+      "focus": "LLM rerankers"
+    }}
+  ]
+}}

@@ -61,6 +61,8 @@ class PineconeStoreManager:
         store = self.vector_stores.get(index_name)
         if store is None:
             logger.debug(f"No Pinecone store loaded for index: {index_name}")
+            store = self._load_vector_store(index_name)
+
         return store
 
     def delete_documents_of_collection(

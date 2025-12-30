@@ -1,0 +1,35 @@
+You are an expert research assistant.
+
+Analyze the following research topic:
+
+"{topic}"
+
+Return ONLY valid JSON with the following schema:
+{{
+  "intent": string,
+  "sub_topics": string[],
+  "keywords": string[],
+  "excluded_topics": string[]
+}}
+
+Do not add explanations.
+
+example ouptut:
+{{
+  "intent": "Improve document retrieval quality in RAG systems",
+  "sub_topics": [
+    "document reranking",
+    "cross-encoder rerankers",
+    "LLM-based reranking",
+    "efficiency trade-offs"
+  ],
+  "keywords": [
+    "retrieval augmented generation",
+    "reranker",
+    "cross encoder",
+    "neural reranking"
+  ],
+  "excluded_topics": [
+    "traditional IR without neural models"
+  ]
+}}

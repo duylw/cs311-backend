@@ -9,8 +9,14 @@ from app.schemas.collection import (
     CollectionCreate,
     CollectionUpdate,
     CollectionResponse,
-    CollectionStats
+    CollectionStats,
 )
+from app.schemas.ingest import (
+    IngestTopicRequest,
+    IngestTopicResponse,
+)
+
+from app.services.collection_service import CollectionService
 from app.repositories.collection import collection_repository
 from app.vector_store import pinecone_store_manager
 from app.core.config import settings
@@ -105,3 +111,45 @@ async def delete_collection(
         logger.exception("Failed to delete collection from Pinecone for collection_id=%s", collection_id)
 
     return None
+
+@router.post(
+    "/{collection_id}/ingest-topic",
+    response_model=IngestTopicResponse,
+    status_code=status.HTTP_200_OK
+)
+async def ingest_topic(
+    collection_id: int,
+    payload: IngestTopicRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Ingest a research topic:
+    - Generate queries
+    - Search + rerank papers
+    - Fetch PDFs
+    - Chunk + store into Pinecone
+    """
+
+    collection_repository.get_or_404(db, collection_id)
+
+    try:
+        result = CollectionService.ingest_topic(
+            collection_id=collection_id,
+            topic=payload.topic,
+            index_name=settings.PINECONE_INDEX_NAME,
+        )
+
+    except Exception as e:
+        logger.exception("Ingest topic failed")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        )
+
+    return IngestTopicResponse(
+        collection_id=collection_id,
+        topic=payload.topic,
+        total_queries=result["total_queries"],
+        total_papers=result["total_papers"],
+        status="success",
+    )
