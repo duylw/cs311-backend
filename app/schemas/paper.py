@@ -20,6 +20,10 @@ class PaperCreate(PaperBase):
     pdf_url: str
 
 class PaperResponse(PaperBase):
+    id: int
     collection_id: int
     pdf_url: str
+    updated_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+
     pass

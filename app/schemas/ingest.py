@@ -9,6 +9,8 @@ class IngestTopicRequest(BaseModel):
 class IngestTopicResponse(BaseModel):
     collection_id: int
     topic: str
-    total_queries: int
-    total_papers: int
+    queries: int
+    abstract_hits: int
+    unique_papers: int
     status: str
+

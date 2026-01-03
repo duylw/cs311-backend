@@ -149,7 +149,9 @@ async def ingest_topic(
     return IngestTopicResponse(
         collection_id=collection_id,
         topic=payload.topic,
-        total_queries=result["total_queries"],
-        total_papers=result["total_papers"],
+        queries=result["queries"],
+        abstract_hits=result["abstract_hits"],
+        unique_papers=result["unique_papers"],
         status="success",
     )
+
