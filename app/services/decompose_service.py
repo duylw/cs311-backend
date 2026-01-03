@@ -87,6 +87,9 @@ class QueryGenerationService:
             "queries": raw_queries
         })
 
+        if result is None:
+            logger.warning("Skip evaluate_queries due to empty LLM result")
+            return []
         return [
             r
             for r in result["results"]

@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import query, collections
+from app.api.v1.endpoints import query, collections, paper
 
 api_router = APIRouter()
 
@@ -9,11 +9,11 @@ api_router.include_router(
     tags=["collections"]
 )
 
-# api_router.include_router(
-#     papers.router,
-#     prefix="/papers",
-#     tags=["papers"]
-# )
+api_router.include_router(
+    paper.router_papers,
+    prefix="/papers",
+    tags=["papers"]
+)
 
 # api_router.include_router(
 #     search.router_search,
