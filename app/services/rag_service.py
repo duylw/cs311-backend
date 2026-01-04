@@ -5,10 +5,8 @@ from typing import List, Dict
 from sqlalchemy.orm import Session
 from loguru import logger
 import time
-import numpy as np
 
-from langchain_ollama import ChatOllama
-from langchain_ollama import OllamaEmbeddings
+from langchain_ollama import ChatOllama, OllamaEmbeddings
 
 from app.schemas.query import RAGResponse
 from app.core.config import settings, config_manager
