@@ -39,17 +39,25 @@ class Settings(BaseSettings):
     IMAGES_DIR: Path = Field(default=Path("./data/images"))
     
     
-    # Embedding Model
-    EMBEDDING_MODEL_NAME: str = Field(
-        default="nomic-embed-text:latest",
-        env="EMBEDDING_MODEL_NAME"
+    # Google AI Configuration
+    GOOGLE_EMBEDDING_MODEL: str = Field(
+        default="models/gemini-embedding-001",
+        env="GOOGLE_EMBEDDING_MODEL"
     )
+    GOOGLE_LLM_MODEL: str = Field(
+        default="models/gemini-2.5-flash-lite",
+        env="GOOGLE_LLM_MODEL"
+    )
+    GOOGLE_API_KEY: Optional[SecretStr] = Field(default=None, env="GOOGLE_API_KEY")
     
-    # LLM Configuration
+    # Ollama Configuration
     LLM_PROVIDER: str = Field(default="ollama", env="LLM_PROVIDER")  # ollama, openai, etc.
     OLLAMA_BASE_URL: str = Field(default="http://localhost:11434", env="OLLAMA_BASE_URL")
-    OLLAMA_MODEL: str = Field(default="gpt-oss:20b", env="OLLAMA_MODEL")
-    OLLAMA_API_KEY: Optional[SecretStr] = Field(default=..., env="OLLAMA_API_KEY")
+    OLLAMA_LLM_MODEL: str = Field(default="gpt-oss:20b", env="OLLAMA_LLM_MODEL")
+    OLLAMA_EMBEDDING_MODEL_NAME: str = Field(
+        default="nomic-embed-text:latest",
+        env="OLLAMA_EMBEDDING_MODEL_NAME"
+    )
     LLM_TEMPERATURE: float = Field(default=0.7, env="LLM_TEMPERATURE")
     LLM_MAX_TOKENS: int = Field(default=2000, env="LLM_MAX_TOKENS")
     
@@ -61,22 +69,12 @@ class Settings(BaseSettings):
     ARXIV_MAX_RESULTS: int = Field(default=50, env="ARXIV_MAX_RESULTS")
     ARXIV_DELAY: float = Field(default=1.0, env="ARXIV_DELAY")
     RERANKING_MODEL: str = Field(default="cross-encoder/ms-marco-MiniLM-L-6-v2", env="RERANKING_MODEL")
+    
     # Retrieval Configuration
     RETRIEVAL_TOP_K: int = Field(default=5, env="RETRIEVAL_TOP_K")
     RERANK_TOP_K: int = Field(default=10, env="RERANK_TOP_K")
     USE_RERANKING: bool = Field(default=True, env="USE_RERANKING")
     MIN_RERANK_SCORE: float = Field(default=5.0, env="MIN_RERANK_SCORE")
-    # PDF Processing
-    PDF_EXTRACT_IMAGES: bool = Field(default=True, env="PDF_EXTRACT_IMAGES")
-    PDF_EXTRACT_TABLES: bool = Field(default=True, env="PDF_EXTRACT_TABLES")
-    PDF_USE_OCR: bool = Field(default=False, env="PDF_USE_OCR")
-    
-    # Filtering
-    MIN_PUBLICATION_YEAR: int = Field(default=2015, env="MIN_PUBLICATION_YEAR")
-    MIN_ABSTRACT_LENGTH: int = Field(default=100, env="MIN_ABSTRACT_LENGTH")
-    
-    # Rate Limiting
-    RATE_LIMIT_PER_MINUTE: int = Field(default=60, env="RATE_LIMIT_PER_MINUTE")
     
     # Logging
     LOG_LEVEL: str = Field(default="INFO", env="LOG_LEVEL")
@@ -100,48 +98,3 @@ for directory in [
     settings.IMAGES_DIR,
 ]:
     directory.mkdir(parents=True, exist_ok=True)
-
-
-# Dynamic configuration loader
-class ConfigManager:
-    """Manage dynamic configuration changes"""
-    
-    def __init__(self):
-        self._settings = settings
-    
-    def get(self, key: str, default=None):
-        """Get configuration value"""
-        return getattr(self._settings, key, default)
-    
-    def update(self, **kwargs):
-        """Update configuration (runtime)"""
-        for key, value in kwargs.items():
-            if hasattr(self._settings, key):
-                setattr(self._settings, key, value)
-    
-    def get_embedding_config(self):
-        """Get embedding configuration"""
-        return {
-            "model_name": self._settings.EMBEDDING_MODEL_NAME,
-            "device": self._settings.EMBEDDING_MODEL_DEVICE,
-            "batch_size": self._settings.EMBEDDING_BATCH_SIZE,
-            "dimension": self._settings.VECTOR_DIMENSION,
-        }
-    
-    def get_llm_config(self):
-        """Get LLM configuration"""
-        return {
-            "provider": self._settings.LLM_PROVIDER,
-            "base_url": self._settings.OLLAMA_BASE_URL,
-            "model": self._settings.OLLAMA_MODEL,
-        }
-    
-    def get_retrieval_config(self):
-        """Get retrieval configuration"""
-        return {
-            "top_k": self._settings.RETRIEVAL_TOP_K,
-            "rerank_top_k": self._settings.RERANK_TOP_K,
-        }
-
-
-config_manager = ConfigManager()

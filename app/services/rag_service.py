@@ -5,26 +5,18 @@ from typing import List, Dict
 from sqlalchemy.orm import Session
 from loguru import logger
 import time
-
-from langchain_ollama import ChatOllama, OllamaEmbeddings
-
 from app.schemas.query import RAGResponse
-from app.core.config import settings, config_manager
+from app.core.config import settings
 
 from app.vector_store.pinecone_store_manager import pinecone_manager
+from app.services.llm_service import llm_service
+
 
 class RAGService:
     """Service for RAG-based question answering"""
     
     def __init__(self):
-
-        """Create LLM"""
-        config = config_manager.get_llm_config()
-        
-        self.llm_model = ChatOllama(
-            base_url=config['base_url'],
-            model=config['model'],
-        )
+        pass
     
     def query(
         self,
@@ -49,10 +41,6 @@ class RAGService:
         """
         start_time = time.time()
 
-        embedding = OllamaEmbeddings(
-            # base_url=settings.OLLAMA_BASE_URL,
-            model=settings.EMBEDDING_MODEL_NAME
-        )
         """TODO:
         - Query Decomposition
         - Rerank
@@ -76,31 +64,12 @@ class RAGService:
                 execution_time=execution_time,
             )
 
-        # Ensure embedding model compatibility
-        existing_embedding = getattr(vector_store, "embeddings", None)
-        existing_model = getattr(existing_embedding, "model", None)
-
-        # If models mismatch, return a safe response (do not recreate index)
-        if existing_model != embedding.model:
-            logger.error(
-                "Embedding model mismatch for index '%s': existing=%s requested=%s",
-                settings.PINECONE_INDEX_NAME,
-                existing_model,
-                embedding.model,
-            )
-            execution_time = time.time() - start_time
-            return RAGResponse(
-                query=query,
-                answer=(
-                    f"Embedding model mismatch: index uses '{existing_model}' "
-                    f"but the request uses '{embedding.model}'. Re-index with the same model or use the matching model."
-                ),
-                execution_time=execution_time,
-            )
-
-
-        if vector_store:
+        elif vector_store:
             # 3. Create retriver for that collection_id
+            logger.info(f"Creating retriever for collection_id: {collection_id}")
+            logger.info(f"Embedding model used: {vector_store.embeddings.model}")
+            
+
             retriever = vector_store.as_retriever(search_type="similarity",
                                                 search_kwargs={"k": top_k,
                                                                 "filter": {"collection_id": collection_id}
@@ -119,7 +88,7 @@ class RAGService:
             context = self._build_context(res)
             
             # 6. Generate answer
-            answer = self._generate_answer(self.llm_model, query, context)
+            answer = self._generate_answer("google_genai", query, context)
             
             execution_time = time.time() - start_time
             
@@ -153,7 +122,7 @@ class RAGService:
         return norm   
         
     
-    def _generate_answer(self, llm: ChatOllama, query: str, context: str) -> str:
+    def _generate_answer(self, llm_model:str, query: str, context: str) -> str:
         """Generate answer using LLM"""
         
         prompt = f"""You are a helpful research assistant. Answer the question based on the provided research paper excerpts.
@@ -172,7 +141,7 @@ Instructions:
 
 Answer:"""
         
-        response = llm.invoke(prompt)
+        response = llm_service.call_llm(llm_model, prompt)
         return response.content
     
     async def stream_query(

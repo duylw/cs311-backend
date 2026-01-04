@@ -17,7 +17,7 @@ class QueryGenerationService:
     def __init__(self):
         self.llm = ChatOllama(
             base_url=settings.OLLAMA_BASE_URL,
-            model=settings.OLLAMA_MODEL,
+            model=settings.OLLAMA_LLM_MODEL,
             temperature=settings.LLM_TEMPERATURE,
             max_tokens=settings.LLM_MAX_TOKENS
         )
