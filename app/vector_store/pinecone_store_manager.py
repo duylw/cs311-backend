@@ -4,7 +4,7 @@ from sqlalchemy import String
 
 from app.core.config import settings
 
-from langchain_ollama import OllamaEmbeddings
+# from langchain_ollama import OllamaEmbeddings
 from langchain_pinecone import PineconeVectorStore
 from pinecone import Pinecone, ServerlessSpec
 from app.services.embedding_service import embedding_service

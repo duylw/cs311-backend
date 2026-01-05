@@ -48,7 +48,7 @@ class Settings(BaseSettings):
         default="models/gemini-2.5-flash-lite",
         env="GOOGLE_LLM_MODEL"
     )
-    GOOGLE_API_KEY: Optional[SecretStr] = Field(default=None, env="GOOGLE_API_KEY")
+    GOOGLE_AI_API_KEY: Optional[SecretStr] = Field(default=None, env="GOOGLE_AI_API_KEY")
     
     # Ollama Configuration
     LLM_PROVIDER: str = Field(default="ollama", env="LLM_PROVIDER")  # ollama, openai, etc.

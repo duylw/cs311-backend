@@ -11,17 +11,11 @@ class RAGQuery(BaseModel):
     use_reranking: bool = Field(default=True, description="Use reranking")
     stream: bool = Field(default=False, description="Stream response")
 
-
 class RAGResponse(BaseModel):
     query: str
     answer: str
     execution_time: float
 
-
-class RAGStreamChunk(BaseModel):
-    """For streaming responses"""
-    chunk: str
-    is_final: bool = False
 
 class QueryLogResponse(BaseModel):
     id: int

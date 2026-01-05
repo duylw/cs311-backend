@@ -5,12 +5,17 @@ from typing import List, Dict
 from sqlalchemy.orm import Session
 from loguru import logger
 import time
+import json
+
 from app.schemas.query import RAGResponse
 from app.core.config import settings
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from app.vector_store.pinecone_store_manager import pinecone_manager
 from app.services.llm_service import llm_service
-
+from app.services.prompt_service import prompt_service
 
 class RAGService:
     """Service for RAG-based question answering"""
@@ -47,14 +52,14 @@ class RAGService:
         """
 
         # 1. Query Decomposition
-        decomposed_queries = self._query_decomposition(query)
+        decomposed_queries = self._query_translation(query)
 
         # 2. Get or create vector store coresponding to collection_id
         vector_store = pinecone_manager.get_store(
             index_name=settings.PINECONE_INDEX_NAME,
         )
 
-        # If no store loaded in memory, return a safe response (don't create)
+        # If no store loaded in memory, return a safe response
         if vector_store is None:
             logger.warning("No Pinecone store loaded for index %s", settings.PINECONE_INDEX_NAME)
             execution_time = time.time() - start_time
@@ -88,7 +93,8 @@ class RAGService:
             context = self._build_context(res)
             
             # 6. Generate answer
-            answer = self._generate_answer("google_genai", query, context)
+            answer = self._generate_answer(query,
+                                           context)
             
             execution_time = time.time() - start_time
             
@@ -99,10 +105,16 @@ class RAGService:
                 execution_time=execution_time,
             )
     
-    def _query_decomposition(self, query: str) -> List[str]:
+    def _query_translation(self, query: str) -> List[str]:
         """Decompose complex query into sub-queries"""
-        # Placeholder for actual decomposition logic
-        return [query]
+        
+        prompt = prompt_service.get_prompt("retrieval_query_translation").format(query=query)
+        
+        response = llm_service.call_llm(settings.GOOGLE_LLM_MODEL, prompt).content
+
+        sub_queries = json.loads(response).get("sub_queries", [query])
+
+        return sub_queries
 
     def _build_context(self, results: List[Dict]) -> str:
         keys = results.keys()
@@ -117,31 +129,19 @@ class RAGService:
                 norm += f"    Title: {doc.metadata.get('title', 'N/A')}\n"
                 norm += f"    Arxiv ID: {doc.metadata.get('arxiv_id', 'N/A')}\n"
                 norm += f"    Authors: {doc.metadata.get('authors', 'N/A')}\n"
-                norm += f"    Score: {doc.metadata.get('score', 'N/A')}\n"
             norm += "\n"
         return norm   
         
     
-    def _generate_answer(self, llm_model:str, query: str, context: str) -> str:
+    def _generate_answer(self, query: str, context: str) -> str:
         """Generate answer using LLM"""
         
-        prompt = f"""You are a helpful research assistant. Answer the question based on the provided research paper excerpts.
-
-Context from research papers:
-{context}
-
-Question: {query}
-
-Instructions:
-1. Provide a clear, accurate answer based ONLY on the context provided
-2. If the context doesn't contain enough information, say so
-3. Cite sources by referring to [Source N] numbers
-4. Be concise but comprehensive
-5. Use technical terms appropriately
-
-Answer:"""
+        prompt = prompt_service.get_prompt("generate_answer").format(
+            context=context,
+            query=query
+        )
         
-        response = llm_service.call_llm(llm_model, prompt)
+        response = llm_service.call_llm(settings.GOOGLE_LLM_MODEL, prompt)
         return response.content
     
     async def stream_query(
@@ -151,8 +151,17 @@ Answer:"""
         collection_id: int,
         top_k: int = 5
     ):
+        
         pass
 
 
 # Create service instances
 rag_service = RAGService()
+
+if __name__ == "__main__":
+    query = "Compare Transformer and RNN architectures for multilingual NLP tasks"
+
+    sub_queries = rag_service._query_translation(query)
+    print("Decomposed Sub-Queries:")
+    for sq in sub_queries:
+        print(f"- {sq}")
