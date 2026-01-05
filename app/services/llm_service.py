@@ -10,7 +10,7 @@ class LLMService:
             settings.OLLAMA_LLM_MODEL: ChatOllama(model=settings.OLLAMA_LLM_MODEL,
                                  base_url=settings.OLLAMA_BASE_URL),
             settings.GOOGLE_LLM_MODEL: ChatGoogleGenerativeAI(model=settings.GOOGLE_LLM_MODEL,
-                                                              api_key=settings.GOOGLE_AI_API_KEY.get_secret_value()),
+                                                              api_key=settings.GOOGLE_GCP_API_KEY.get_secret_value()),
         }
 
     def get_llm(self, model_name: str):
