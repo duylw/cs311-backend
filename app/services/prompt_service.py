@@ -1,8 +1,8 @@
 class PromptService:
     def __init__(self):
         self.prompts = {
-            "retrieval_query_translation": "app/services/prompts/retrieval_query_translation.txt",
-            "generate_answer": "app/services/prompts/generate_answer.txt",
+            "retrieval_query_translation": "prompts/retrieval_query_translation.txt",
+            "generate_answer": "prompts/generate_answer.txt",
         }
     
     def get_prompt(self, prompt_name: str) -> str:

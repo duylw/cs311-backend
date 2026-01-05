@@ -157,11 +157,3 @@ class RAGService:
 
 # Create service instances
 rag_service = RAGService()
-
-if __name__ == "__main__":
-    query = "Compare Transformer and RNN architectures for multilingual NLP tasks"
-
-    sub_queries = rag_service._query_translation(query)
-    print("Decomposed Sub-Queries:")
-    for sq in sub_queries:
-        print(f"- {sq}")
