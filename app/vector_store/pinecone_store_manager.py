@@ -4,9 +4,10 @@ from sqlalchemy import String
 
 from app.core.config import settings
 
-from langchain_ollama import OllamaEmbeddings
+# from langchain_ollama import OllamaEmbeddings
 from langchain_pinecone import PineconeVectorStore
 from pinecone import Pinecone, ServerlessSpec
+from app.services.embedding_service import embedding_service
 
 class PineconeStoreManager:
     """Manage multiple Pinecone indexes"""
@@ -20,10 +21,8 @@ class PineconeStoreManager:
         If not exists, create a new one"""
         pinecone_client = Pinecone(api_key=settings.PINECONE_API_KEY.get_secret_value())
         
-        embedding = OllamaEmbeddings(
-                model=settings.EMBEDDING_MODEL_NAME
-            )
-
+        # Default to Google embedding
+        embedding = embedding_service.get_embedding(settings.GOOGLE_EMBEDDING_MODEL)
 
         # If has index
         if pinecone_client.has_index(index_name):
@@ -37,7 +36,7 @@ class PineconeStoreManager:
             logger.info(f"Creating new Pinecone index: {index_name}")
             
             # Create new index (Use default embedding model from settings)
-            logger.info(f"Creating Pinecone index {index_name} with embedding model {settings.EMBEDDING_MODEL_NAME}")
+            logger.info(f"Creating Pinecone index {index_name} with embedding model {embedding.model}")
             dimension = len(embedding.embed_query("hello world"))
             pinecone_client.create_index(
                 name=index_name,
