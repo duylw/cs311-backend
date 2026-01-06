@@ -23,14 +23,6 @@ async def lifespan(app: FastAPI):
     logger.info(f"Starting {settings.PROJECT_NAME} v{settings.VERSION}")
     logger.info(f"API documentation: {settings.API_V1_STR}/docs")
     
-    # Initialize Pinecone stores
-    from app.vector_store.pinecone_store_manager import pinecone_manager
-    logger.info("Pinecone vector store initialized")
-    
-    # Log configuration
-    logger.info(f"Embedding model: {settings.EMBEDDING_MODEL_NAME}")
-    logger.info(f"LLM: {settings.OLLAMA_MODEL}")
-
     # Load or create Pinecone index
     logger.info(f"Loading or creating Pinecone index {settings.PINECONE_INDEX_NAME}")
     pinecone_manager._load_vector_store(index_name=settings.PINECONE_INDEX_NAME)

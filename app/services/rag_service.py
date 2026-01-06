@@ -5,16 +5,17 @@ from typing import List, Dict
 from sqlalchemy.orm import Session
 from loguru import logger
 import time
-import numpy as np
-
-from langchain_ollama import ChatOllama
-from langchain_ollama import OllamaEmbeddings
+import json
 
 from app.schemas.query import RAGResponse
-from app.core.config import settings, config_manager
+from app.core.config import settings
+
+from dotenv import load_dotenv
+load_dotenv()
 
 from app.vector_store.pinecone_store_manager import pinecone_manager
-from dotenv import load_dotenv
+from app.services.llm_service import llm_service
+from app.services.prompt_service import prompt_service
 
 
 load_dotenv()
@@ -22,14 +23,7 @@ class RAGService:
     """Service for RAG-based question answering"""
     
     def __init__(self):
-
-        """Create LLM"""
-        config = config_manager.get_llm_config()
-        
-        self.llm_model = ChatOllama(
-            base_url=config['base_url'],
-            model=config['model'],
-        )
+        pass
     
     def query(
         self,
@@ -54,24 +48,20 @@ class RAGService:
         """
         start_time = time.time()
 
-        embedding = OllamaEmbeddings(
-            # base_url=settings.OLLAMA_BASE_URL,
-            model=settings.EMBEDDING_MODEL_NAME
-        )
         """TODO:
         - Query Decomposition
         - Rerank
         """
 
         # 1. Query Decomposition
-        decomposed_queries = self._query_decomposition(query)
+        decomposed_queries = self._query_translation(query)
 
         # 2. Get or create vector store coresponding to collection_id
         vector_store = pinecone_manager.get_store(
             index_name=settings.PINECONE_INDEX_NAME,
         )
 
-        # If no store loaded in memory, return a safe response (don't create)
+        # If no store loaded in memory, return a safe response
         if vector_store is None:
             logger.warning("No Pinecone store loaded for index %s", settings.PINECONE_INDEX_NAME)
             execution_time = time.time() - start_time
@@ -81,31 +71,12 @@ class RAGService:
                 execution_time=execution_time,
             )
 
-        # Ensure embedding model compatibility
-        existing_embedding = getattr(vector_store, "embeddings", None)
-        existing_model = getattr(existing_embedding, "model", None)
-
-        # If models mismatch, return a safe response (do not recreate index)
-        if existing_model != embedding.model:
-            logger.error(
-                "Embedding model mismatch for index '%s': existing=%s requested=%s",
-                settings.PINECONE_INDEX_NAME,
-                existing_model,
-                embedding.model,
-            )
-            execution_time = time.time() - start_time
-            return RAGResponse(
-                query=query,
-                answer=(
-                    f"Embedding model mismatch: index uses '{existing_model}' "
-                    f"but the request uses '{embedding.model}'. Re-index with the same model or use the matching model."
-                ),
-                execution_time=execution_time,
-            )
-
-
-        if vector_store:
+        elif vector_store:
             # 3. Create retriver for that collection_id
+            logger.info(f"Creating retriever for collection_id: {collection_id}")
+            logger.info(f"Embedding model used: {vector_store.embeddings.model}")
+            
+
             retriever = vector_store.as_retriever(search_type="similarity",
                                                 search_kwargs={"k": top_k,
                                                                 "filter": {"collection_id": collection_id}
@@ -124,7 +95,8 @@ class RAGService:
             context = self._build_context(res)
             
             # 6. Generate answer
-            answer = self._generate_answer(self.llm_model, query, context)
+            answer = self._generate_answer(query,
+                                           context)
             
             execution_time = time.time() - start_time
             
@@ -135,10 +107,16 @@ class RAGService:
                 execution_time=execution_time,
             )
     
-    def _query_decomposition(self, query: str) -> List[str]:
+    def _query_translation(self, query: str) -> List[str]:
         """Decompose complex query into sub-queries"""
-        # Placeholder for actual decomposition logic
-        return [query]
+        
+        prompt = prompt_service.get_prompt("retrieval_query_translation").format(query=query)
+        
+        response = llm_service.call_llm(settings.GOOGLE_LLM_MODEL, prompt).content
+
+        sub_queries = json.loads(response).get("sub_queries", [query])
+
+        return sub_queries
 
     def _build_context(self, results: List[Dict]) -> str:
         keys = results.keys()
@@ -153,31 +131,19 @@ class RAGService:
                 norm += f"    Title: {doc.metadata.get('title', 'N/A')}\n"
                 norm += f"    Arxiv ID: {doc.metadata.get('arxiv_id', 'N/A')}\n"
                 norm += f"    Authors: {doc.metadata.get('authors', 'N/A')}\n"
-                norm += f"    Score: {doc.metadata.get('score', 'N/A')}\n"
             norm += "\n"
         return norm   
         
     
-    def _generate_answer(self, llm: ChatOllama, query: str, context: str) -> str:
+    def _generate_answer(self, query: str, context: str) -> str:
         """Generate answer using LLM"""
         
-        prompt = f"""You are a helpful research assistant. Answer the question based on the provided research paper excerpts.
-
-Context from research papers:
-{context}
-
-Question: {query}
-
-Instructions:
-1. Provide a clear, accurate answer based ONLY on the context provided
-2. If the context doesn't contain enough information, say so
-3. Cite sources by referring to [Source N] numbers
-4. Be concise but comprehensive
-5. Use technical terms appropriately
-
-Answer:"""
+        prompt = prompt_service.get_prompt("generate_answer").format(
+            context=context,
+            query=query
+        )
         
-        response = llm.invoke(prompt)
+        response = llm_service.call_llm(settings.GOOGLE_LLM_MODEL, prompt)
         return response.content
     
     async def stream_query(
@@ -187,6 +153,7 @@ Answer:"""
         collection_id: int,
         top_k: int = 5
     ):
+        
         pass
 
 
