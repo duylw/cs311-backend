@@ -3,27 +3,37 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime
 
 class PaperBase(BaseModel):
-    arxiv_id: str = Field(..., description="Arxiv paper ID")
+    arxiv_id: str = Field(..., description="Paper identifier (arXiv / URL)")
     title: str = Field(..., description="Paper title")
-    authors: List[str] = Field(..., description="List of authors")
-    abstract: str = Field(..., description="Paper abstract")
-    
-    @field_validator('authors')
-    def validate_authors(cls, v):
-        if not v:
-            raise ValueError("Authors list cannot be empty")
-        return v
+    abstract: Optional[str] = Field(..., description="Paper abstract")
+
+    class Config:
+        from_attributes = True
+
 
 class PaperCreate(PaperBase):
     collection_id: int
-    updated_date: Optional[datetime] = None
-    pdf_url: str
+    authors: Optional[List[str]] = Field(
+        default=None,
+        description="List of authors"
+    )
+    pdf_url: Optional[str] = None
+
+    @field_validator("authors")
+    @classmethod
+    def validate_authors(cls, v):
+        if v is None:
+            return v
+        if not v:
+            raise ValueError("authors cannot be an empty list")
+        return v
+
 
 class PaperResponse(PaperBase):
     id: int
     collection_id: int
-    pdf_url: str
-    updated_at: Optional[datetime] = None
-    created_at: Optional[datetime] = None
+    authors: List[str] = Field(default_factory=list)
+    pdf_url: Optional[str] = None
 
-    pass
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None

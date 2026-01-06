@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Optional
 
 
 class IngestTopicRequest(BaseModel):
@@ -9,8 +9,7 @@ class IngestTopicRequest(BaseModel):
 class IngestTopicResponse(BaseModel):
     collection_id: int
     topic: str
-    queries: int
-    abstract_hits: int
-    unique_papers: int
+    queries: Optional[int]
+    abstract_hits: Optional[int]
+    unique_papers: Optional[int]
     status: str
-

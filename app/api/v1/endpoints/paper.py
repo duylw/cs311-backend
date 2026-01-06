@@ -32,14 +32,18 @@ def list_papers(
             id=p.id,
             arxiv_id=p.arxiv_id,
             title=p.title,
-            authors=[a.strip() for a in p.authors.split(",")],
             abstract=p.abstract,
+            authors=parse_authors(p.authors),
             collection_id=p.collection_id,
             pdf_url=p.pdf_url,
-            updated_at=p.updated_at,
             created_at=p.created_at,
+            updated_at=p.updated_at,
         )
         for p in papers
-]
+    ]
 
+def parse_authors(authors_str: str | None) -> list[str]:
+    if not authors_str:
+        return []
+    return [a.strip() for a in authors_str.split(",") if a.strip()]
 

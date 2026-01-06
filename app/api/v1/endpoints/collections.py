@@ -134,6 +134,7 @@ async def ingest_topic(
 
     try:
         result = CollectionService.ingest_topic(
+            db=db,
             collection_id=collection_id,
             topic=payload.topic,
             index_name=settings.PINECONE_INDEX_NAME,
@@ -149,9 +150,10 @@ async def ingest_topic(
     return IngestTopicResponse(
         collection_id=collection_id,
         topic=payload.topic,
-        queries=result["queries"],
-        abstract_hits=result["abstract_hits"],
-        unique_papers=result["unique_papers"],
+        queries=result.get("queries"),
+        abstract_hits=result.get("abstract_hits"),
+        unique_papers=result.get("unique_papers"),
+        total_papers=result.get("total_papers"),
         status="success",
     )
 

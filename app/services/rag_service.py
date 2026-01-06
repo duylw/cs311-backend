@@ -14,7 +14,10 @@ from app.schemas.query import RAGResponse
 from app.core.config import settings, config_manager
 
 from app.vector_store.pinecone_store_manager import pinecone_manager
+from dotenv import load_dotenv
 
+
+load_dotenv()
 class RAGService:
     """Service for RAG-based question answering"""
     
