@@ -39,4 +39,5 @@ dependencies = [
     "unstructured-client>=0.42.6",
     "unstructured[pdf]>=0.18.26",
     "python-magic>=0.4.27",
+    "langchain-docling>=2.0.0",
 ]
