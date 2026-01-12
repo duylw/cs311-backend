@@ -134,6 +134,7 @@ async def ingest_topic(
 
     try:
         result = CollectionService.ingest_topic(
+            db=db,
             collection_id=collection_id,
             topic=payload.topic,
             index_name=settings.PINECONE_INDEX_NAME,
@@ -146,10 +147,23 @@ async def ingest_topic(
             detail=str(e),
         )
 
+
+    raw_hits = result.get("abstract_hits", [])
+
+    abstract_hits = [
+        {
+            "content": d.page_content,
+            "metadata": d.metadata,
+        }
+        for d in raw_hits
+    ]
+
     return IngestTopicResponse(
         collection_id=collection_id,
         topic=payload.topic,
-        total_queries=result["total_queries"],
-        total_papers=result["total_papers"],
+        queries=result.get("queries"),
+        abstract_hits=abstract_hits,
+        unique_papers=result.get("unique_papers"),
         status="success",
     )
+

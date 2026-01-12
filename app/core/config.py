@@ -80,6 +80,9 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = Field(default="INFO", env="LOG_LEVEL")
     LOG_FILE: Optional[str] = Field(default="logs/app.log", env="LOG_FILE")
 
+    MAX_AXES: int = Field(default=5, env="MAX_AXES")
+    MAX_QUERIES_PER_AXIS: int = Field(default=3, env="MAX_QUERIES_PER_AXIS")
+    MAX_SEARCH_PER_QUERY: int = Field(default=5, env="MAX_SEARCH_PER_QUERY")
     model_config = ConfigDict(
         env_file=".env",
         env_file_encoding = "utf-8",
