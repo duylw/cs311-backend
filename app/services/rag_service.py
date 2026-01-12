@@ -10,9 +10,6 @@ import json
 from app.schemas.query import RAGResponse
 from app.core.config import settings
 
-from dotenv import load_dotenv
-load_dotenv()
-
 from app.vector_store.pinecone_store_manager import pinecone_manager
 from app.services.llm_service import llm_service
 from app.services.prompt_service import prompt_service
@@ -136,7 +133,7 @@ class RAGService:
     def _generate_answer(self, query: str, context: str) -> str:
         """Generate answer using LLM"""
         
-        prompt = prompt_service.get_prompt("generate_answer").format(
+        prompt = prompt_service.get_prompt("retrieval_generate_answer").format(
             context=context,
             query=query
         )
