@@ -144,25 +144,37 @@ class QueryGenerationService:
         if not raw_queries:
             return []
 
-        logger.debug(f"Evaluating {len(raw_queries)} queries")
+        final_results: List[Dict] = []
 
-        result: Optional[EvaluationResponse] = self._safe_invoke(
-            self.evaluate_chain,
-            {"query": raw_queries},
-            task="Query evaluation",
-        )
+        for rq in raw_queries:
+            query_text = rq["query"]
 
-        if not result or not result.results:
-            logger.warning("No evaluation results returned")
-            return []
+            if not isinstance(query_text, str):
+                logger.error(f"Invalid query type: {type(query_text)}")
+                continue
 
-        if result is None:
-            logger.warning("Skip evaluate_queries due to empty LLM result")
-            return []
-        return [
-            r.model_dump()
-            for r in result.results
-            if r.keep and r.score >= min_score
-        ]
+            eval_result: Optional[EvaluationResponse] = self._safe_invoke(
+                self.evaluate_chain,
+                {"query": query_text},
+                task="Query evaluation",
+            )
+
+            if not eval_result or not eval_result.results:
+                continue
+
+            for r in eval_result.results:
+                if r.keep and r.score >= min_score:
+                    final_results.append(
+                        {
+                            "axis": rq["axis"],
+                            "query": query_text,
+                            "score": r.score,
+                            "keep": r.keep,
+                        }
+                    )
+
+        logger.debug(f"Evaluation kept {len(final_results)} queries")
+        return final_results
+
 
 query_generation_service = QueryGenerationService()

@@ -147,13 +147,23 @@ async def ingest_topic(
             detail=str(e),
         )
 
+
+    raw_hits = result.get("abstract_hits", [])
+
+    abstract_hits = [
+        {
+            "content": d.page_content,
+            "metadata": d.metadata,
+        }
+        for d in raw_hits
+    ]
+
     return IngestTopicResponse(
         collection_id=collection_id,
         topic=payload.topic,
         queries=result.get("queries"),
-        abstract_hits=result.get("abstract_hits"),
+        abstract_hits=abstract_hits,
         unique_papers=result.get("unique_papers"),
-        total_papers=result.get("total_papers"),
         status="success",
     )
 

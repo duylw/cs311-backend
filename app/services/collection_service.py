@@ -17,8 +17,13 @@ class CollectionService:
         logger.info(f"Start ingest topic: {topic}")
         # 1. Generate + evaluate queries
         queries = query_generation_service.generate_queries(topic=topic)
-
+       
         # 2. Search + rerank arxiv (abstract level)
+        assert isinstance(queries, list)
+
+        for q in queries:
+            assert isinstance(q["query"], str)
+            assert not q["query"].startswith("[")
         docs = search_service(queries)
 
         # 3. Fetch PDF + chunk + ingest Pinecone
@@ -29,8 +34,6 @@ class CollectionService:
         )
 
          # 4. Update DB collection stats
-        from app.repositories.collection import collection_repository
-
         collection = collection_repository.get_or_404(db, collection_id)
         new_total = (collection.total_papers or 0) + len(docs)
         collection_repository.update(

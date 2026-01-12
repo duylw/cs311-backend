@@ -27,7 +27,7 @@ class RAGService:
     
     def query(
         self,
-        db: Session,
+        #db: Session,
         query: str,
         collection_id: int,
         top_k: int = 5,
