@@ -177,7 +177,7 @@ async def get_chat_history(
     """
     Get chat history
     
-    - **collection_id**: Filter by collection (optional)
+    - **collection_id**: Filter by collection
     - **limit**: Number of recent chat messages to return
     """
     logs = chat_log_repository.get_with_collection(collection_id=collection_id, limit=limit, db=db)
