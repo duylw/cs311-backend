@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from loguru import logger
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 
 from app.vector_store.pinecone_store_manager import pinecone_manager
 from app.api.deps import get_db
@@ -18,6 +18,7 @@ from app.schemas.ingest import (
 
 from app.services.collection_service import CollectionService
 from app.repositories.collection import collection_repository
+from app.repositories.chat_log import chat_log_repository
 from app.vector_store import pinecone_store_manager
 from app.core.config import settings
 
@@ -167,3 +168,30 @@ async def ingest_topic(
         status="success",
     )
 
+@router.get("/{collection_id}/chat-history")
+async def get_chat_history(
+    collection_id: int,
+    limit: int = Query(default=10, ge=1, le=100),
+    db: Session = Depends(get_db)
+):
+    """
+    Get chat history
+    
+    - **collection_id**: Filter by collection (optional)
+    - **limit**: Number of recent chat messages to return
+    """
+    logs = chat_log_repository.get_with_collection(collection_id=collection_id, limit=limit, db=db)
+    
+    return {
+        'total': len(logs),
+        'queries': [
+            {
+                'id': log.id,
+                'text': log.text,
+                'role': log.role,
+                'collection_id': log.collection_id,
+                'created_at': log.created_at
+            }
+            for log in logs
+        ]
+    }

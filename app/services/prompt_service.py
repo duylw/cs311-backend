@@ -3,7 +3,7 @@ class PromptService:
         self.prompts = {
             "retrieval_query_evaluate": "prompts/retrieval_query_evaluate.txt",
             "retrieval_generate_answer": "prompts/retrieval_generate_answer.txt",
-            "retrieval_query_rewrite": "prompts/retrieval_query_rewrite.txt",
+            "retrieval_query_decompose": "prompts/retrieval_query_decompose.txt",
             "retrieval_query_enhance": "prompts/retrieval_query_enhance.txt",
         }
     

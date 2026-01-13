@@ -3,7 +3,7 @@ SQLAlchemy Models for Research Papers
 """
 from sqlalchemy import (
     Column, Integer, String, Text, DateTime, Boolean, 
-    ForeignKey, JSON, Float, Index, Enum as SQLEnum
+    ForeignKey, JSON, Float, Index, Enum as SQLEnum, UniqueConstraint
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -19,7 +19,7 @@ class Paper(Base):
     collection_id = Column(Integer, ForeignKey("collections.id", ondelete="CASCADE"), nullable=False)
     
     # Arxiv Info
-    arxiv_id = Column(String(50), nullable=False, index=True, unique=True)
+    arxiv_id = Column(String(50), nullable=False, index=True)
     title = Column(Text, nullable=False)
     authors = Column(String, nullable=False)  # List of author names
     abstract = Column(Text, nullable=True)
@@ -37,4 +37,5 @@ class Paper(Base):
     __table_args__ = (
         Index('idx_paper_arxiv_id', 'arxiv_id'),
         Index('idx_paper_collection', 'collection_id'),
+        UniqueConstraint('collection_id', 'arxiv_id', name='uq_collection_arxiv'), # Ensure unique arxiv_id per collection
     )

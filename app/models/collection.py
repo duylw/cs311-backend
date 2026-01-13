@@ -22,6 +22,7 @@ class Collection(Base):
     
     # Relationships
     papers = relationship("Paper", back_populates="collection", cascade="all, delete-orphan")
+    chat_logs = relationship("ChatLog", back_populates="collection", cascade="all, delete-orphan")
     
     __table_args__ = (
         Index('idx_collection_name', 'name'),

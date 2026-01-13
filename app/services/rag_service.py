@@ -15,8 +15,13 @@ from app.services.llm_service import llm_service
 from app.services.prompt_service import prompt_service
 from pydantic import BaseModel, Field
 
+from app.repositories.chat_log import chat_log_repository
 
-load_dotenv()
+class ListSubQueries(BaseModel):
+    sub_queries: List[str] = Field(
+        description="List of sub-queries derived from the main query"
+    )
+
 class RAGService:
     """Service for RAG-based question answering"""
     
@@ -25,7 +30,7 @@ class RAGService:
     
     def query(
         self,
-        #db: Session,
+        db: Session,
         query: str,
         collection_id: int,
         top_k: int = 5,
@@ -52,7 +57,7 @@ class RAGService:
         """
 
         # 1. Query Decomposition
-        decomposed_queries = self._query_rewrite(query)
+        decomposed_queries = self._query_decompose(query)
 
         # 2. Get or create vector store coresponding to collection_id
         vector_store = pinecone_manager.get_store(
@@ -97,6 +102,19 @@ class RAGService:
             
             execution_time = time.time() - start_time
             
+            # Log Chat (For User)
+            chat_log_repository.create(db, {
+                'collection_id': collection_id,
+                'text': query,
+                'role': 'user',
+            })
+
+            # Log Chat (For BOT)
+            chat_log_repository.create(db, {
+                'collection_id': collection_id,
+                'text': answer,
+                'role': 'assistant',
+            })
                 
             return RAGResponse(
                 query=query,
@@ -104,10 +122,10 @@ class RAGService:
                 execution_time=execution_time,
             )
     
-    def _query_rewrite(self, query: str) -> List[str]:
+    def _query_decompose(self, query: str) -> List[str]:
         """Decompose complex query into sub-queries"""
         
-        prompt = prompt_service.get_prompt("retrieval_query_rewrite").format(query=query)
+        prompt = prompt_service.get_prompt("retrieval_query_decompose").format(query=query)
         
         llm_structured = llm_service.get_llm(settings.GOOGLE_LLM_MODEL).with_structured_output(ListSubQueries)
 
@@ -140,8 +158,6 @@ class RAGService:
             context=context
         )
         
-        print(prompt)
-
         response = llm_service.call_llm(settings.GOOGLE_LLM_MODEL, prompt)
         return response.content
     
