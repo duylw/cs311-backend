@@ -13,6 +13,14 @@ from app.core.config import settings
 from app.vector_store.pinecone_store_manager import pinecone_manager
 from app.services.llm_service import llm_service
 from app.services.prompt_service import prompt_service
+from pydantic import BaseModel, Field
+
+from app.repositories.chat_log import chat_log_repository
+
+class ListSubQueries(BaseModel):
+    sub_queries: List[str] = Field(
+        description="List of sub-queries derived from the main query"
+    )
 
 class RAGService:
     """Service for RAG-based question answering"""
@@ -49,7 +57,7 @@ class RAGService:
         """
 
         # 1. Query Decomposition
-        decomposed_queries = self._query_translation(query)
+        decomposed_queries = self._query_decompose(query)
 
         # 2. Get or create vector store coresponding to collection_id
         vector_store = pinecone_manager.get_store(
@@ -82,7 +90,6 @@ class RAGService:
             for sub_query in decomposed_queries:
                 res[sub_query] = retriever.invoke(sub_query)
 
-
             if use_reranking:
                 pass  # Reranking logic can be implemented here
 
@@ -95,6 +102,19 @@ class RAGService:
             
             execution_time = time.time() - start_time
             
+            # Log Chat (For User)
+            chat_log_repository.create(db, {
+                'collection_id': collection_id,
+                'text': query,
+                'role': 'user',
+            })
+
+            # Log Chat (For BOT)
+            chat_log_repository.create(db, {
+                'collection_id': collection_id,
+                'text': answer,
+                'role': 'assistant',
+            })
                 
             return RAGResponse(
                 query=query,
@@ -102,14 +122,16 @@ class RAGService:
                 execution_time=execution_time,
             )
     
-    def _query_translation(self, query: str) -> List[str]:
+    def _query_decompose(self, query: str) -> List[str]:
         """Decompose complex query into sub-queries"""
         
-        prompt = prompt_service.get_prompt("retrieval_query_translation").format(query=query)
+        prompt = prompt_service.get_prompt("retrieval_query_decompose").format(query=query)
         
-        response = llm_service.call_llm(settings.GOOGLE_LLM_MODEL, prompt).content
+        llm_structured = llm_service.get_llm(settings.GOOGLE_LLM_MODEL).with_structured_output(ListSubQueries)
 
-        sub_queries = json.loads(response).get("sub_queries", [query])
+        response = llm_structured.invoke(prompt)
+
+        sub_queries = response.sub_queries
 
         return sub_queries
 
@@ -121,11 +143,9 @@ class RAGService:
             norm += f"Sub Query: {key}\n"
             docs = results[key]
             for i, doc in enumerate(docs):
-                norm += f"  Result {i+1}:\n"
-                norm += f"    Content: {doc.page_content}\n"
-                norm += f"    Title: {doc.metadata.get('title', 'N/A')}\n"
-                norm += f"    Arxiv ID: {doc.metadata.get('arxiv_id', 'N/A')}\n"
-                norm += f"    Authors: {doc.metadata.get('authors', 'N/A')}\n"
+                norm += f"From Paper: {doc.metadata.get('title', 'N/A').strip()}\n"
+                norm += f"From Section: {doc.metadata.get('section', 'N/A')}:\n"
+                norm += f"Content: {doc.page_content.strip()}\n"
             norm += "\n"
         return norm   
         
@@ -134,8 +154,8 @@ class RAGService:
         """Generate answer using LLM"""
         
         prompt = prompt_service.get_prompt("retrieval_generate_answer").format(
-            context=context,
-            query=query
+            query=query,
+            context=context
         )
         
         response = llm_service.call_llm(settings.GOOGLE_LLM_MODEL, prompt)
