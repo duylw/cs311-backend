@@ -15,11 +15,3 @@ class RAGResponse(BaseModel):
     query: str
     answer: str
     execution_time: float
-
-
-class QueryLogResponse(BaseModel):
-    id: int
-    query: str
-    query_type: str
-    execution_time: float
-    created_at: datetime

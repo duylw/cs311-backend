@@ -35,4 +35,10 @@ dependencies = [
     "importlib-metadata>=8.5.0",
     "ipywidgets>=8.1.8",
     "langchain-google-community>=3.0.2",
+    "langchain-unstructured>=1.0.1",
+    "unstructured-client>=0.42.6",
+    "unstructured[pdf]>=0.18.26",
+    "python-magic>=0.4.27",
+    "langchain-docling>=2.0.0",
+    "langgraph-checkpoint-sqlite>=3.0.2",
 ]
