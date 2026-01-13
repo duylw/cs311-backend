@@ -14,7 +14,7 @@ Given a **COMPLEX** query, decompose it into a list of independent sub-queries. 
 ---
 
 # COMPLEX QUERY
-{{query}}
+{query}
 
 ---
 
@@ -173,16 +173,3 @@ Generate sub-queries as **keyword-rich declarative phrases** optimized for vecto
 - Create overly long or complex sub-queries (keep under 15 words when possible)
 
 ---
-
-# OUTPUT FORMAT
-
-You MUST respond with ONLY valid JSON in this exact structure:
-
-```json
-{
-  "sub_queries": [
-    "<sub-query 1>",
-    "<sub-query 2>",
-    "<sub-query 3>"
-  ]
-}

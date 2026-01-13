@@ -9,7 +9,7 @@ Analyze the user's query and classify it as either **SIMPLE** or **COMPLEX**, pr
 ---
 
 # USER QUERY
-{{query}}
+{query}
 
 ---
 
@@ -77,13 +77,3 @@ A query is **COMPLEX** when it involves:
 - Mention the specific pattern or characteristic identified
 
 ---
-
-# OUTPUT FORMAT
-
-You MUST respond with ONLY valid JSON in this exact structure:
-
-```json
-{
-  "complexity": "simple" | "complex",
-  "reasoning": "<short explanation in 1-2 sentences>",
-}

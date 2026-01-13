@@ -30,7 +30,7 @@ class Settings(BaseSettings):
 
     # Vector Databse
     PINECONE_API_KEY: Optional[SecretStr] = Field(default=None, env="PINECONE_API_KEY")
-    PINECONE_INDEX_NAME: Optional[str] = Field(default=None, env="PINECONE_INDEX_NAME")    
+    PINECONE_INDEX_NAME: Optional[str] = Field(default="collection", env="PINECONE_INDEX_NAME")    
 
     # File Storage
     UPLOAD_DIR: Path = Field(default=Path("./data/uploads"))

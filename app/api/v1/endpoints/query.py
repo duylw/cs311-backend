@@ -74,7 +74,7 @@ async def ask_question_stream(
 @router_query.get("/history")
 async def get_query_history(
     collection_id: Optional[int] = None,
-    limit: int = Query(default=20, ge=1, le=100),
+    limit: int = Query(default=10, ge=1, le=100),
     db: Session = Depends(get_db)
 ):
     """
