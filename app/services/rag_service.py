@@ -15,6 +15,8 @@ from app.services.llm_service import llm_service
 from app.services.prompt_service import prompt_service
 from pydantic import BaseModel, Field
 
+
+load_dotenv()
 class RAGService:
     """Service for RAG-based question answering"""
     
@@ -23,7 +25,7 @@ class RAGService:
     
     def query(
         self,
-        db: Session,
+        #db: Session,
         query: str,
         collection_id: int,
         top_k: int = 5,
