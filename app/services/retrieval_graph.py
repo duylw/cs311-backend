@@ -89,7 +89,7 @@ def enhance(state: ThreadState) -> ThreadState:
 
 def decompose(state: ThreadState) -> ThreadState:
     # Make LLM call to decompose complex query
-    llm_structured = llm_service.get_llm(settings.LLM_DEFAULT_MODEL)\
+    llm_structured = llm_service.get_llm(settings.GOOGLE_LLM_MODEL)\
                                 .with_structured_output(DecomposedQueries)
     
     prompt = prompt_service.get_prompt("retrieval_query_decompose")
