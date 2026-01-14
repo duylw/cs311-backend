@@ -11,6 +11,7 @@ from app.schemas.collection import (
     CollectionUpdate,
     CollectionResponse,
     CollectionStats,
+    CollectionDeleteResponse
 )
 from app.schemas.ingest import (
     IngestTopicRequest,
@@ -96,7 +97,7 @@ async def update_collection(
     
     return updated
 
-@router.delete("/{collection_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{collection_id}", response_model=CollectionDeleteResponse)
 async def delete_collection(
     collection_id: int,
     db: Session = Depends(get_db)
@@ -132,7 +133,10 @@ async def delete_collection(
     except Exception:
         logger.exception("Failed to delete chatbot thread for collection_id=%s", collection_id)
 
-    return None
+    return CollectionDeleteResponse(
+        id=collection_id,
+        message="Collection deleted successfully"
+    )
 
 @router.post(
     "/{collection_id}/ingest-topic",

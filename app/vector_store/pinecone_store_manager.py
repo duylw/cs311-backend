@@ -64,16 +64,22 @@ class PineconeStoreManager:
 
         return store
 
-    def delete_documents_of_collection(
+    def delete_document_of_collection(
         self,
         index_name: str,
         collection_id: int,
         arxiv_id: str,
         namespace: str = "__default__",
     ):
+        logger.info(
+            "Deleting document from Pinecone index %s for collection %s and arxiv_id %s",
+            index_name,
+            collection_id,
+            arxiv_id,
+        )
         vector_store = self.vector_stores.get(index_name)
         if not vector_store:
-            logger.warning("Pinecone index %s not found (delete documents)", index_name)
+            logger.warning("Pinecone index %s not found (delete document)", index_name)
             return
         filter = {"collection_id": collection_id, "arxiv_id": arxiv_id}
         vector_store.delete(filter=filter, namespace=namespace)

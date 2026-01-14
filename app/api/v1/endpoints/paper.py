@@ -42,8 +42,23 @@ def list_papers(
         for p in papers
     ]
 
+@router_papers.delete(
+    "/collections/{collection_id}/papers/{paper_id}",
+    status_code=204
+)
+def delete_paper(
+    collection_id: int,
+    paper_id: int,
+    db: Session = Depends(get_db),
+):
+    """Delete a paper from a collection"""
+    collection_repository.get_or_404(db, collection_id)
+    
+    paper_service.delete_paper(db, paper_id, collection_id)
+    
+    return None
+
 def parse_authors(authors_str: str | None) -> list[str]:
     if not authors_str:
         return []
     return [a.strip() for a in authors_str.split(",") if a.strip()]
-
