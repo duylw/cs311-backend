@@ -8,7 +8,7 @@ from app.api.deps import get_db
 from app.schemas.query import RAGQuery, RAGResponse
 from app.services.rag_service import rag_service
 from app.repositories.collection import collection_repository
-
+from fastapi import HTTPException, status
 
 router_query = APIRouter()
 
@@ -28,11 +28,11 @@ async def ask_question(
     # Verify collection exists
     collection = collection_repository.get_or_404(db, rag_query.collection_id)
     
-    if not collection.total_papers:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Collection has no indexed papers. Please index some papers first."
-        )
+    # if not collection.total_papers:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_400_BAD_REQUEST,
+    #         detail="Collection has no indexed papers. Please index some papers first."
+    #     )
     
     # Generate answer
     response = rag_service.query(
