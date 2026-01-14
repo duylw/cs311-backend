@@ -8,8 +8,11 @@ Given a SIMPLE query, enhance it to improve retrieval quality while keeping it a
 
 ---
 
-# USER QUERY
+# USER SIMPLE QUERY
 {query}
+
+# REASONING WHY IT IS SIMPLE
+{reasoning}
 
 ---
 

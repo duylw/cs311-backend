@@ -77,13 +77,6 @@ class PineconeStoreManager:
             return
         filter = {"collection_id": collection_id, "arxiv_id": arxiv_id}
         vector_store.delete(filter=filter, namespace=namespace)
-        logger.info(
-            "Deleted documents from Pinecone index %s for collection %s and arxiv_id %s",
-            index_name,
-            collection_id,
-            arxiv_id,
-        )
-
 
     def delete_index_collection(self, index_name: str, collection_id: int):
         logger.info(
@@ -97,11 +90,6 @@ class PineconeStoreManager:
             return
         filter = {"collection_id": collection_id}
         vector_store.delete(filter=filter, namespace="__default__")
-        logger.info(
-            "Deleted all documents from Pinecone index %s for collection %s",
-            index_name,
-            collection_id,
-        )
 
 # Global instance
 pinecone_manager = PineconeStoreManager()

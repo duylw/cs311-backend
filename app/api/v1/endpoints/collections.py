@@ -1,3 +1,4 @@
+import os
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from loguru import logger
 from sqlalchemy.orm import Session
@@ -21,6 +22,12 @@ from app.repositories.collection import collection_repository
 from app.repositories.chat_log import chat_log_repository
 from app.vector_store import pinecone_store_manager
 from app.core.config import settings
+
+import sqlite3
+from langgraph.checkpoint.sqlite import SqliteSaver
+
+from app.services.retrieval_graph import chatbot
+
 
 router = APIRouter()
 
@@ -111,6 +118,20 @@ async def delete_collection(
     except Exception:
         logger.exception("Failed to delete collection from Pinecone for collection_id=%s", collection_id)
 
+    try:
+        # Delete Thread of ChatBot on Collection Deletion
+        logger.info("Deleting chatbot thread for collection %s", collection_id)
+        
+        db_path = settings.LANGGRAPH_CHECKPOINT_URL.replace("sqlite:///", "")
+
+        # Ensure directory exists
+        conn = sqlite3.connect(db_path, check_same_thread=False)
+        checkpointer = SqliteSaver(conn)
+
+        checkpointer.delete_thread(collection_id)
+    except Exception:
+        logger.exception("Failed to delete chatbot thread for collection_id=%s", collection_id)
+
     return None
 
 @router.post(
@@ -184,7 +205,7 @@ async def get_chat_history(
     
     return {
         'total': len(logs),
-        'queries': [
+        'messages': [
             {
                 'id': log.id,
                 'text': log.text,

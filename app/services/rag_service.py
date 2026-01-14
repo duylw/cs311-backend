@@ -60,11 +60,6 @@ class RAGService:
 
         start_time = time.time()
 
-        """TODO:
-        - Query Decomposition
-        - Rerank
-        """
-
         config = {
             "configurable": {"thread_id": collection_id}
         }
@@ -80,8 +75,7 @@ class RAGService:
         
         execution_time = time.time() - start_time
         
-     
-
+    
         # Log Chat (For Assistant)
         chat_log_repository.create(db, {
             'collection_id': collection_id,

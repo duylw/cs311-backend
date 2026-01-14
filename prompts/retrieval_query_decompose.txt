@@ -16,6 +16,9 @@ Given a **COMPLEX** query, decompose it into a list of independent sub-queries. 
 # COMPLEX QUERY
 {query}
 
+# REASONING WHY IT IS COMPLEX
+{reasoning}
+
 ---
 
 # SUB-QUERY FORMAT FOR OPTIMAL RETRIEVAL

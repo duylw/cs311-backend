@@ -4,24 +4,20 @@ import os
 
 from langgraph.store.memory import InMemoryStore
 from langgraph.graph import StateGraph, START, END
-from langgraph.store.memory import InMemoryStore
 from langgraph.checkpoint.memory import MemorySaver
 
 from langchain_core.messages import AnyMessage
 from langgraph.graph.message import add_messages
 
-from langgraph.checkpoint.sqlite import SqliteSaver
-
 from typing import Annotated, List, Dict, Literal, TypedDict, Union
-from operator import add
-
+from pydantic import BaseModel, Field
 
 from app.core.config import settings
 
 from app.vector_store.pinecone_store_manager import pinecone_manager
 from app.services.llm_service import llm_service
 from app.services.prompt_service import prompt_service
-from pydantic import BaseModel, Field
+
 
 from langgraph.checkpoint.sqlite import SqliteSaver
 import sqlite3
@@ -79,7 +75,7 @@ def enhance(state: ThreadState) -> ThreadState:
                                 .with_structured_output(EnhancedQuery)
     
     prompt = prompt_service.get_prompt("retrieval_query_enhance")
-    prompt = prompt.format(query=state["messages"][-1].content)
+    prompt = prompt.format(query=state["messages"][-1].content, reasoning=state["complexity_evaluation"].reasoning)
 
     response = llm_structured.invoke(prompt)
 
@@ -93,7 +89,7 @@ def decompose(state: ThreadState) -> ThreadState:
                                 .with_structured_output(DecomposedQueries)
     
     prompt = prompt_service.get_prompt("retrieval_query_decompose")
-    prompt = prompt.format(query=state["messages"][-1].content)
+    prompt = prompt.format(query=state["messages"][-1].content, reasoning=state["complexity_evaluation"].reasoning)
     response = llm_structured.invoke(prompt)
     
     return {
@@ -211,8 +207,6 @@ workflow.add_edge("decompose", "retrive_documents")
 workflow.add_edge("retrive_documents", "answer")
 workflow.add_edge("answer", END)
 
-memory = MemorySaver()
-
 # Use SQLite for persistent checkpointing
 # Remove the sqlite:/// prefix to get the actual file path
 db_path = settings.LANGGRAPH_CHECKPOINT_URL.replace("sqlite:///", "")
@@ -220,29 +214,6 @@ db_path = settings.LANGGRAPH_CHECKPOINT_URL.replace("sqlite:///", "")
 # Ensure directory exists
 os.makedirs(os.path.dirname(db_path), exist_ok=True)
 conn = sqlite3.connect(db_path, check_same_thread=False)
-memory = SqliteSaver(conn)
-    
-chatbot = workflow.compile(checkpointer=memory)
+checkpointer = SqliteSaver(conn)
 
-
-if __name__ == "__main__":
-    pinecone_manager._load_vector_store(settings.PINECONE_INDEX_NAME)
-
-    config = {
-        "configurable": {"thread_id": 1},
-    }
-
-    while True:
-        user_input = input("User: ")
-        input_msg = [("user", user_input)]
-
-        result = chatbot.invoke(
-            {
-                "messages": input_msg,
-                "collection_id": 1,
-            },
-            config
-        )
-
-        for msg in result["messages"]:
-            print(msg.pretty_print())
+chatbot = workflow.compile(checkpointer=checkpointer)
