@@ -64,6 +64,9 @@ Generate sub-queries as **keyword-rich declarative phrases** optimized for vecto
 
 ## 3. Handle Different Query Types
 
+## NOTE:
+- Those example given blow is almost in Computer Science Field, but the user's query can be in any field (medical, environment, ...), adapt well to appropriate field base on user's query.
+
 ### Comparison Queries
 **Pattern**: "Compare A and B" or "Differences between A and B"
 **Decomposition Strategy**:
@@ -157,6 +160,7 @@ Generate sub-queries as **keyword-rich declarative phrases** optimized for vecto
 3. **Clarity**: Is the intent clear and unambiguous?
 4. **Completeness**: Does it contain all necessary context?
 5. **Relevance**: Does it contribute to answering the original query?
+6. **Language**: If origin query is not in English, translate it to english then decompose
 
 ## Optimization Rules
 - **Aim for 2-5 sub-queries**: Too few may miss aspects; too many creates redundancy
@@ -166,6 +170,7 @@ Generate sub-queries as **keyword-rich declarative phrases** optimized for vecto
 - **Avoid over-decomposition**: Don't break down simple components unnecessarily
 - **Maintain semantic integrity**: Each sub-query should make sense on its own
 - **Balance specificity**: Specific enough to be focused, broad enough to retrieve relevant papers
+- **Length flexibility**: Output can be short (5-7 words) or long (15+ words) based on concept breadth, but prefer long
 
 ## What NOT to Do
 - Create dependent sub-queries that reference each other
@@ -173,6 +178,4 @@ Generate sub-queries as **keyword-rich declarative phrases** optimized for vecto
 - Make sub-queries too vague or conversational
 - Include sub-queries that don't relate to the original question
 - Use pronouns like "it", "this", "that" without clear antecedents
-- Create overly long or complex sub-queries (keep under 15 words when possible)
-
 ---
