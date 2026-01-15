@@ -4,24 +4,20 @@ import os
 
 from langgraph.store.memory import InMemoryStore
 from langgraph.graph import StateGraph, START, END
-from langgraph.store.memory import InMemoryStore
 from langgraph.checkpoint.memory import MemorySaver
 
-from langchain_core.messages import AnyMessage
+from langchain_core.messages import AnyMessage, HumanMessage, AIMessage
 from langgraph.graph.message import add_messages
 
-from langgraph.checkpoint.sqlite import SqliteSaver
-
 from typing import Annotated, List, Dict, Literal, TypedDict, Union
-from operator import add
-
+from pydantic import BaseModel, Field
 
 from app.core.config import settings
 
 from app.vector_store.pinecone_store_manager import pinecone_manager
 from app.services.llm_service import llm_service
 from app.services.prompt_service import prompt_service
-from pydantic import BaseModel, Field
+
 
 from langgraph.checkpoint.sqlite import SqliteSaver
 import sqlite3
@@ -79,7 +75,7 @@ def enhance(state: ThreadState) -> ThreadState:
                                 .with_structured_output(EnhancedQuery)
     
     prompt = prompt_service.get_prompt("retrieval_query_enhance")
-    prompt = prompt.format(query=state["messages"][-1].content)
+    prompt = prompt.format(query=state["messages"][-1].content, reasoning=state["complexity_evaluation"].reasoning)
 
     response = llm_structured.invoke(prompt)
 
@@ -93,7 +89,7 @@ def decompose(state: ThreadState) -> ThreadState:
                                 .with_structured_output(DecomposedQueries)
     
     prompt = prompt_service.get_prompt("retrieval_query_decompose")
-    prompt = prompt.format(query=state["messages"][-1].content)
+    prompt = prompt.format(query=state["messages"][-1].content, reasoning=state["complexity_evaluation"].reasoning)
     response = llm_structured.invoke(prompt)
     
     return {
@@ -138,35 +134,48 @@ def build_context(result:Union[List[Dict]], query_complexity="simple") -> str:
         for key in keys:
             docs = result[key]
             for doc in docs:
-                norm += f"From Paper: {doc.metadata.get('title', 'N/A').strip()}\n"
-                norm += f"From Section: {doc.metadata.get('section', 'N/A')}:\n"
+                norm += f"[{doc.metadata.get('title', 'N/A').strip()}]\n"
                 norm += f"Content: {doc.page_content.strip()}\n"
     else:
         for key in keys:
             norm += f"Sub Query: {key}\n"
             docs = result[key]
             for doc in docs:
-                norm += f"From Paper: {doc.metadata.get('title', 'N/A').strip()}\n"
-                norm += f"From Section: {doc.metadata.get('section', 'N/A')}:\n"
+                norm += f"[{doc.metadata.get('title', 'N/A').strip()}]\n"
                 norm += f"Content: {doc.page_content.strip()}\n"
             norm += "\n"
 
     return norm   
+
+def concat_trimmed_messages(messages: List[AnyMessage], max_length: int) -> str:
+    # Concatenate and trim messages to fit within max_length
+    combined = ""
+    for msg in messages:
+        if isinstance(msg.content, HumanMessage):
+            role = "Human"
+        elif isinstance(msg.content, AIMessage):
+            role = "AI"
+        else:
+            role = "Unknown"
+        combined +=f"Role {role}: {msg.content} \n"
+        if len(combined) > max_length:
+            break
+    return combined[:-max_length]
 
 def answer(state: ThreadState) -> ThreadState:
     # Generate final answer using RAG
 
     query_complexity = state["complexity_evaluation"].complexity
 
+    trimmed_mess = concat_trimmed_messages(state["messages"][:-3], max_length=1000)
+
     if query_complexity == "vague":
-        prompt = f"""The user's query is vague. Please ask for clarification or more details.
-User Query: {state['messages'][-1].content}
-Evaluation Reasoning Why It is vague: {state['complexity_evaluation'].reasoning}
 
-A briefly suggest how the user can modify their query to be more specific.
-
-Note that we now only support text-based queries.
-"""
+        prompt = prompt_service.get_prompt("retrieval_generate_vague").format(
+                query=state["messages"][-1].content,
+                history=trimmed_mess,
+                reasoning=state["complexity_evaluation"].reasoning
+        )
         
         response = llm_service.call_llm(settings.GOOGLE_LLM_MODEL, prompt)
     else:
@@ -178,7 +187,8 @@ Note that we now only support text-based queries.
 
         prompt = prompt_service.get_prompt("retrieval_generate_answer").format(
                 query=state["messages"][-1].content,
-                context=context
+                context=context,
+                history=trimmed_mess
             )
 
         response = llm_service.call_llm(settings.GOOGLE_LLM_MODEL, prompt)
@@ -211,8 +221,6 @@ workflow.add_edge("decompose", "retrive_documents")
 workflow.add_edge("retrive_documents", "answer")
 workflow.add_edge("answer", END)
 
-memory = MemorySaver()
-
 # Use SQLite for persistent checkpointing
 # Remove the sqlite:/// prefix to get the actual file path
 db_path = settings.LANGGRAPH_CHECKPOINT_URL.replace("sqlite:///", "")
@@ -220,29 +228,6 @@ db_path = settings.LANGGRAPH_CHECKPOINT_URL.replace("sqlite:///", "")
 # Ensure directory exists
 os.makedirs(os.path.dirname(db_path), exist_ok=True)
 conn = sqlite3.connect(db_path, check_same_thread=False)
-memory = SqliteSaver(conn)
-    
-chatbot = workflow.compile(checkpointer=memory)
+checkpointer = SqliteSaver(conn)
 
-
-if __name__ == "__main__":
-    pinecone_manager._load_vector_store(settings.PINECONE_INDEX_NAME)
-
-    config = {
-        "configurable": {"thread_id": 1},
-    }
-
-    while True:
-        user_input = input("User: ")
-        input_msg = [("user", user_input)]
-
-        result = chatbot.invoke(
-            {
-                "messages": input_msg,
-                "collection_id": 1,
-            },
-            config
-        )
-
-        for msg in result["messages"]:
-            print(msg.pretty_print())
+chatbot = workflow.compile(checkpointer=checkpointer)

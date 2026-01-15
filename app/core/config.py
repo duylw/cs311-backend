@@ -53,6 +53,8 @@ class Settings(BaseSettings):
     )
     GOOGLE_GCP_API_KEY: Optional[SecretStr] = Field(default=None, env="GOOGLE_GCP_API_KEY")
     
+    GOOGLE_CSE_ID: Optional[str] = Field(default=None, env="GOOGLE_CSE_ID")
+
     # Ollama Configuration
     LLM_PROVIDER: str = Field(default="ollama", env="LLM_PROVIDER")  # ollama, openai, etc.
     OLLAMA_BASE_URL: str = Field(default="http://localhost:11434", env="OLLAMA_BASE_URL")

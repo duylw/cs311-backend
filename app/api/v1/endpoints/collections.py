@@ -1,3 +1,4 @@
+import os
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from loguru import logger
 from sqlalchemy.orm import Session
@@ -10,6 +11,7 @@ from app.schemas.collection import (
     CollectionUpdate,
     CollectionResponse,
     CollectionStats,
+    CollectionDeleteResponse
 )
 from app.schemas.ingest import (
     IngestTopicRequest,
@@ -21,6 +23,12 @@ from app.repositories.collection import collection_repository
 from app.repositories.chat_log import chat_log_repository
 from app.vector_store import pinecone_store_manager
 from app.core.config import settings
+
+import sqlite3
+from langgraph.checkpoint.sqlite import SqliteSaver
+
+from app.services.retrieval_graph import chatbot
+
 
 router = APIRouter()
 
@@ -89,7 +97,7 @@ async def update_collection(
     
     return updated
 
-@router.delete("/{collection_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{collection_id}", response_model=CollectionDeleteResponse)
 async def delete_collection(
     collection_id: int,
     db: Session = Depends(get_db)
@@ -111,7 +119,24 @@ async def delete_collection(
     except Exception:
         logger.exception("Failed to delete collection from Pinecone for collection_id=%s", collection_id)
 
-    return None
+    try:
+        # Delete Thread of ChatBot on Collection Deletion
+        logger.info("Deleting chatbot thread for collection %s", collection_id)
+        
+        db_path = settings.LANGGRAPH_CHECKPOINT_URL.replace("sqlite:///", "")
+
+        # Ensure directory exists
+        conn = sqlite3.connect(db_path, check_same_thread=False)
+        checkpointer = SqliteSaver(conn)
+
+        checkpointer.delete_thread(collection_id)
+    except Exception:
+        logger.exception("Failed to delete chatbot thread for collection_id=%s", collection_id)
+
+    return CollectionDeleteResponse(
+        id=collection_id,
+        message="Collection deleted successfully"
+    )
 
 @router.post(
     "/{collection_id}/ingest-topic",
@@ -184,7 +209,7 @@ async def get_chat_history(
     
     return {
         'total': len(logs),
-        'queries': [
+        'messages': [
             {
                 'id': log.id,
                 'text': log.text,

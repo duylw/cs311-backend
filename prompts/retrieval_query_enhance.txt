@@ -8,8 +8,11 @@ Given a SIMPLE query, enhance it to improve retrieval quality while keeping it a
 
 ---
 
-# USER QUERY
+# USER SIMPLE QUERY
 {query}
+
+# REASONING WHY IT IS SIMPLE
+{reasoning}
 
 ---
 
@@ -44,66 +47,80 @@ Given a SIMPLE query, enhance it to improve retrieval quality while keeping it a
 
 # EXAMPLES
 
-**Computer Science / AI:**
-**Input:** "wat is transformr?"
-**Output:** "Transformer architecture"
+## NOTE:
+- Given that those below Example are mostly in Computer Science Field, but user's query can be in another field (medical, environment, ...), adapt well appropriate field base the user's query. 
 
-**Input:** "how bert works"
-**Output:** "BERT model architecture and working mechanism"
+## Example 1: Grammar & Spelling Correction
+**Input**: "what is transformr architechture?"
+**Output**: "Transformer architecture components and mechanisms"
+**Reasoning**: Fixed spelling errors (transformr → Transformer, architechture → architecture) and converted to keyword-rich declarative format.
 
-**Biology / Medicine:**
-**Input:** "wat is crispr gene editting?"
-**Output:** "CRISPR gene editing mechanism and applications"
+## Example 2: Colloquial to Academic
+**Input**: "why use attention mechanisms?"
+**Output**: "attention mechanisms benefits and applications"
+**Reasoning**: Replaced colloquial "why use" with academic phrasing, added context ("neural networks") for better semantic matching.
 
-**Input:** "how does mrna vacine work"
-**Output:** "mRNA vaccine mechanism of action and immune response"
+## Example 3: Adding Technical Context
+**Input**: "what is BERT?"
+**Output**: "BERT bidirectional encoder representations from transformers model architecture"
+**Reasoning**: Expanded acronym for clarity, added key technical terms (model architecture) to improve retrieval.
 
-**Input:** "tell me about mitocondria function"
-**Output:** "mitochondria cellular function and energy production"
+## Example 4: Keyword Enrichment (Short)
+**Input**: "gradient descent"
+**Output**: "gradient descent optimization algorithm"
+**Reasoning**: Added minimal but crucial keywords to specify the concept type, keeping it concise.
 
-**Physics:**
-**Input:** "explain quantum entanglemnt"
-**Output:** "quantum entanglement phenomenon and properties"
+## Example 5: Keyword Enrichment (Long)
+**Input**: "attention mechanism"
+**Output**: "attention mechanism architecture self-attention multi-head attention computation in neural networks"
+**Reasoning**: Enriched with specific attention types and computational context for comprehensive retrieval.
 
-**Input:** "what is dark mater?"
-**Output:** "dark matter composition and cosmological role"
+## Example 6: Removing Filler Words
+**Input**: "like, what are maybe the benefits of using batch normalization?"
+**Output**: "batch normalization benefits and advantages in neural network training"
+**Reasoning**: Removed filler words ("like", "maybe"), converted to keyword-rich format, added context (neural network training).
 
-**Chemistry:**
-**Input:** "how catalysts speed up reactions"
-**Output:** "catalyst mechanism in chemical reaction acceleration"
+## Example 8: Technical Term Precision
+**Input**: "what is backprop?"
+**Output**: "backpropagation algorithm gradient computation in neural networks"
+**Reasoning**: Expanded informal abbreviation, added technical context for better semantic matching.
 
-**Input:** "what are covalant bonds?"
-**Output:** "covalent bonding in molecular structure"
+## Example 9: Already Well-Formed (Minimal Change)
+**Input**: "ResNet residual connections architecture"
+**Output**: "ResNet residual connections architecture and design"
+**Reasoning**: Query already optimal; added minimal enhancement ("and design") for slight improvement.
 
-**Psychology / Social Sciences:**
-**Input:** "what is cognitive biases"
-**Output:** "cognitive bias types and decision-making effects"
+## Example 10: Question to Declarative
+**Input**: "What are the advantages of transfer learning?"
+**Output**: "transfer learning advantages benefits and applications in deep learning"
+**Reasoning**: Converted question to keyword-rich declarative, added domain context (deep learning).
 
-**Input:** "how does placebo efect work?"
-**Output:** "placebo effect mechanisms in clinical outcomes"
+## Example 11: Domain-Specific Enhancement
+**Input**: "dropout"
+**Output**: "dropout regularization technique in neural network"
+**Reasoning**: Added technical classification (regularization technique), context (neural network training).
 
-**Economics / Business:**
-**Input:** "what causes inflation?"
-**Output:** "inflation causes and economic factors"
+## Example 12: Preserving Natural Questions (When Effective)
+**Input**: "How does self-attention work in Transformers?"
+**Output**: "self-attention mechanism computation in Transformer architecture"
+**Reasoning**: Natural questions can be effective, but declarative format with technical keywords performs better for vector search.
 
-**Input:** "supply and demend theory"
-**Output:** "supply and demand equilibrium in market economics"
 
-**Environmental Science:**
-**Input:** "how global warming affects oceans"
-**Output:** "global warming impact on ocean temperature and ecosystems"
+## Example 15: Short Query (When Appropriate)
+**Input**: "what is CNN"
+**Output**: "CNN convolutional neural network architecture"
+**Reasoning**: Simple expansion - brevity is fine when the concept is well-defined.
 
-**Input:** "what is carbon capture technlogy?"
-**Output:** "carbon capture and storage technology methods"
+## Example 16: Long Query (When Needed)
+**Input**: "fine tuning"
+**Output**: "fine-tuning pre-trained models transfer learning techniques"
+**Reasoning**: Broad concept requires extensive keywords to capture multiple relevant aspects and use cases.
 
-**Engineering:**
-**Input:** "how do solar pannels work?"
-**Output:** "solar panel photovoltaic energy conversion mechanism"
-
-**Input:** "strength of different materials"
-**Output:** "material strength properties and mechanical characteristics"
-
-**Mathematics:**
-**Input:** "what is bayesian statistics?"
-**Output:** "Bayesian statistical inference methods and applications"
 ---
+
+# KEY PRINCIPLES FROM EXAMPLES
+- **Length flexibility**: Output can be short (5-7 words) or long (15+ words) based on concept breadth, but prefer long
+- **Keyword density**: Pack relevant technical terms without sacrificing readability
+- **Natural flow**: Maintain readable phrases, not just keyword lists
+- **Semantic richness**: Include related concepts that help vector search find relevant papers
+- **Academic tone**: Use terminology that matches academic paper language

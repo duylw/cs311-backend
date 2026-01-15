@@ -8,7 +8,7 @@ from app.api.deps import get_db
 from app.schemas.query import RAGQuery, RAGResponse
 from app.services.rag_service import rag_service
 from app.repositories.collection import collection_repository
-
+from fastapi import HTTPException, status
 
 router_query = APIRouter()
 

@@ -5,6 +5,7 @@ class PromptService:
             "retrieval_generate_answer": "prompts/retrieval_generate_answer.txt",
             "retrieval_query_decompose": "prompts/retrieval_query_decompose.txt",
             "retrieval_query_enhance": "prompts/retrieval_query_enhance.txt",
+            "retrieval_generate_vague": "prompts/retrieval_generate_vague.txt",
         }
     
     def get_prompt(self, prompt_name: str) -> str:

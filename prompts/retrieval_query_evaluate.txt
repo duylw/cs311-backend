@@ -23,6 +23,7 @@ A query is **VAGUE** when it:
 - References previous context that is not provided (assuming conversational history)
 - Contains unclear or undefined technical terms without explanation
 - Is too short or fragmentary to determine intent (e.g., "explain this", "what about it?")
+- Ask about 
 
 **Examples of VAGUE queries:**
 - "How does it work?" (what is "it"?)
@@ -36,7 +37,7 @@ A query is **VAGUE** when it:
 **When a query is VAGUE:**
 - The system should ask for clarification
 - Suggest the user provide more context or specify what they're referring to
-- Cannot proceed with retrieval without additional information
+- Cannot proceed with retrieval without additional information 
 
 ---
 
@@ -63,7 +64,7 @@ A query is **COMPLEX** when it involves:
 
 ### 2. **Multiple Independent Topics**
 - Asking about multiple unrelated or semi-related things in one query
-- Examples: "What is CNN and how does transfer learning work?", "Explain GAN and VAE"
+- Examples: "What is CNN and how does transfer learning work?", "What is RAG? What is RNNs?"
 
 ### 3. **Relationships or Dependencies**
 - Asking how X affects/impacts/influences Y

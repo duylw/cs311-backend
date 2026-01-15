@@ -41,4 +41,6 @@ dependencies = [
     "python-magic>=0.4.27",
     "langchain-docling>=2.0.0",
     "langgraph-checkpoint-sqlite>=3.0.2",
+    "ragas>=0.4.3",
+    "datasets>=4.4.2",
 ]

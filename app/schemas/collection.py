@@ -19,6 +19,9 @@ class CollectionUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = None
 
+class CollectionDeleteResponse(BaseModel):
+    id: int
+    message: str
 
 class CollectionInDB(CollectionBase):
     id: int
