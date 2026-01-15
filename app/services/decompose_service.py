@@ -44,13 +44,12 @@ class QueryGenerationService:
         )
         self.axis_chain = self.axis_prompt | self.llm | self.axis_parser
 
-
         self.evaluate_parser = PydanticOutputParser(
             pydantic_object=EvaluationResponse
         )
         self.evaluate_prompt = PromptTemplate(
             template=(prompt_dir / "evaluate_query.txt").read_text(encoding="utf-8"),
-            input_variables=["query"],
+            input_variables=["query", "axis"],
             partial_variables={
                 "format_instructions": self.evaluate_parser.get_format_instructions()
             },
@@ -68,7 +67,6 @@ class QueryGenerationService:
 
         start_time = time.time()
 
-    
         logger.debug(f"Evaluating original topic: {topic}")
 
         topic_eval = self._evaluate_queries(
@@ -78,10 +76,8 @@ class QueryGenerationService:
 
         if topic_eval:
             logger.info("Skip decomposition.")
-            settings.MAX_SEARCH_PER_QUERY=4
             return topic_eval
         
-        settings.MAX_SEARCH_PER_QUERY=2
         axes = self._generate_axes(topic)
         raw_queries = self._flatten_axes(axes)
 
@@ -123,7 +119,7 @@ class QueryGenerationService:
         raw_queries: List[Dict] = []
 
         for axis in axes:
-            queries = axis.example_queries[: self.MAX_QUERIES_PER_AXIS]
+            queries = axis.queries[: self.MAX_QUERIES_PER_AXIS]
             for q in queries:
                 raw_queries.append(
                     {
@@ -148,6 +144,7 @@ class QueryGenerationService:
 
         for rq in raw_queries:
             query_text = rq["query"]
+            axis_name = rq["axis"]
 
             if not isinstance(query_text, str):
                 logger.error(f"Invalid query type: {type(query_text)}")
@@ -155,7 +152,7 @@ class QueryGenerationService:
 
             eval_result: Optional[EvaluationResponse] = self._safe_invoke(
                 self.evaluate_chain,
-                {"query": query_text},
+                {"query": query_text, "axis": axis_name},
                 task="Query evaluation",
             )
 
@@ -166,8 +163,8 @@ class QueryGenerationService:
                 if r.keep and r.score >= min_score:
                     final_results.append(
                         {
-                            "axis": rq["axis"],
-                            "query": query_text,
+                            "axis": r.axis or axis_name,  
+                            "query": r.query,  
                             "score": r.score,
                             "keep": r.keep,
                         }
