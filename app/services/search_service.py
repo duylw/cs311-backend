@@ -5,11 +5,9 @@ from typing import List, Dict, Optional, Set
 import arxiv
 from googleapiclient.discovery import build
 from langchain_core.documents import Document
-from sentence_transformers import CrossEncoder
 from loguru import logger
 from dotenv import load_dotenv
 from app.core.config import settings
-
 load_dotenv()
 
 ARXIV_ID_REGEX = re.compile(
@@ -25,12 +23,6 @@ def extract_arxiv_id(url: str) -> Optional[str]:
 
 class SearchService:
     def __init__(self):
-        self.reranker = (
-            CrossEncoder(settings.RERANKING_MODEL)
-            if settings.USE_RERANKING
-            else None
-        )
-
         self.api_key = os.getenv("GOOGLE_GCP_API_KEY")
         self.cse_id = os.getenv("GOOGLE_CSE_ID")
 
@@ -63,10 +55,11 @@ class SearchService:
                 if arxiv_id:
                     arxiv_ids.add(arxiv_id)
 
+            logger.info(f"[Google] Query='{query}' → {len(arxiv_ids)} unique arXiv IDs")
             return list(arxiv_ids)
 
         except Exception as e:
-            logger.error(f"Google search failed: {e}")
+            logger.error(f"[Google] Search failed: {e}")
             return []
 
     def fetch_arxiv_papers(
@@ -100,52 +93,38 @@ class SearchService:
                     )
                 )
 
+            logger.info(f"[arXiv] Fetched {len(docs)} papers")
             return docs
 
         except Exception as e:
-            logger.error(f"arXiv fetch failed: {e}")
+            logger.error(f"[arXiv] Fetch failed: {e}")
             return []
-
-    def rerank(
-        self,
-        query: str,
-        docs: List[Document],
-        top_k: int,
-    ) -> List[Document]:
-        if not docs:
-            return []
-
-        if not self.reranker:
-            return docs[:top_k]
-
-        pairs = [(query, d.page_content) for d in docs]
-        scores = self.reranker.predict(pairs)
-
-        for d, s in zip(docs, scores):
-            d.metadata["rerank_score"] = float(s)
-
-        docs.sort(
-            key=lambda x: x.metadata.get("rerank_score", 0.0),
-            reverse=True,
-        )
-
-        return docs[:top_k]
 
 
 def search_service(
     queries: List[Dict],
-    top_k_per_query: int = 5,
+    sort_by_date: bool = True,
 ) -> List[Document]:
     service = SearchService()
     all_docs: List[Document] = []
-
+    seen_arxiv_ids: Set[str] = set()
+    general_k = settings.TOP_K_PAPERS_PER_QUERY
+    axis_k = settings.TOP_K_PAPERS_PER_AXIS
+    
     for q in queries:
         axis = q["axis"]
         query = q["query"]
 
+        if axis == "General":
+            top_k = general_k
+        else:
+            top_k = axis_k
+
+        logger.info(f"=== Searching axis='{axis}' | query='{query}' | k={top_k} ===")
+
         arxiv_ids = service.search_google_arxiv_ids(
             query=query,
-            max_results=top_k_per_query * 2,
+            max_results=top_k * 2,  
         )
 
         docs = service.fetch_arxiv_papers(arxiv_ids)
@@ -154,12 +133,23 @@ def search_service(
             d.metadata["axis"] = axis
             d.metadata["query"] = query
 
-        top_docs = service.rerank(
-            query=query,
-            docs=docs,
-            top_k=top_k_per_query,
-        )
+        if sort_by_date:
+            docs.sort(
+                key=lambda x: x.metadata.get("published", ""),
+                reverse=True,
+            )
+        selected = []
+        for d in docs:
+            aid = d.metadata.get("arxiv_id")
+            if aid not in seen_arxiv_ids:
+                seen_arxiv_ids.add(aid)
+                selected.append(d)
+            if len(selected) >= top_k:
+                break
 
-        all_docs.extend(top_docs)
+        all_docs.extend(selected)
 
+        logger.info(f"[Result] axis='{axis}' → selected {len(selected)} papers")
+
+    logger.info(f"TOTAL collected papers: {len(all_docs)}")
     return all_docs

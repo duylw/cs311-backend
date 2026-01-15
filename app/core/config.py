@@ -71,9 +71,8 @@ class Settings(BaseSettings):
     CHUNK_OVERLAP: int = Field(default=200, env="CHUNK_OVERLAP")
     
     # Search Configuration
-    ARXIV_MAX_RESULTS: int = Field(default=50, env="ARXIV_MAX_RESULTS")
-    ARXIV_DELAY: float = Field(default=1.0, env="ARXIV_DELAY")
-    RERANKING_MODEL: str = Field(default="cross-encoder/ms-marco-MiniLM-L-6-v2", env="RERANKING_MODEL")
+    TOP_K_PAPERS_PER_AXIS: int = Field(default=5, env="TOP_K_PAPERS_PER_AXIS")
+    TOP_K_PAPERS_PER_QUERY: int = Field(default=5, env="TOP_K_PAPERS_PER_QUERY")
     
     # Retrieval Configuration
     RETRIEVAL_TOP_K: int = Field(default=5, env="RETRIEVAL_TOP_K")
@@ -87,7 +86,7 @@ class Settings(BaseSettings):
 
     MAX_AXES: int = Field(default=5, env="MAX_AXES")
     MAX_QUERIES_PER_AXIS: int = Field(default=3, env="MAX_QUERIES_PER_AXIS")
-    MAX_SEARCH_PER_QUERY: int = Field(default=5, env="MAX_SEARCH_PER_QUERY")
+
     model_config = ConfigDict(
         env_file=".env",
         env_file_encoding = "utf-8",

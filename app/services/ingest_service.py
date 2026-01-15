@@ -14,7 +14,7 @@ from app.models.paper import Paper
 from app.db.session import SessionLocal
 from app.core.config import settings
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from app.core.heuristic_config import FIGURE_CONFIG, TABLE_CONFIG
+from app.core.heuristic_config import FIGURE_CONFIG, TABLE_CONFIG   
 SECTION_PATTERN = re.compile(
     r"^(\d+(\.\d+)*\s+)?(Abstract|Introduction|Related Work|Method|Methods|Approach|Experiments|Results|Discussion|Conclusion|References)",
     re.IGNORECASE
@@ -86,7 +86,7 @@ def chunk_paragraphs(
     if current:
         chunks.append("\n\n".join(current))
 
-    return chunks
+    return chunks   
 
 class PDFService:
     DATA_DIR = Path("data/papers")
@@ -254,6 +254,17 @@ class PDFService:
         return tables
 
     @staticmethod
+    def is_likely_equation_line(line: str) -> bool:
+        if len(line) < 10:
+            return False
+        math_pattern = re.compile(r'[=+\-*/^()[\]{}∫∑∂∞√∏αβγδθλμσφψωΓΔΘΛΠΣΦΨΩ⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻]')
+        math_count = len(math_pattern.findall(line))
+        word_count = len(re.findall(r'\b\w+\b', line))
+        if math_count > 5 and word_count < 5 and math_count / len(line) > 0.15:
+            return True
+        return False
+
+    @staticmethod
     def extract_equations_from_docs(
         docs: list[Document],
         context_window: int = 2,
@@ -277,22 +288,47 @@ class PDFService:
             section = doc.metadata.get("section", "unknown")
             lines = doc.page_content.split("\n")
 
-            for i, line in enumerate(lines):
-                line_strip = line.strip()
+            i = 0
+            while i < len(lines):
+                line = lines[i].strip()
 
-                if not equation_pattern.search(line_strip):
-                    continue
+                if equation_pattern.match(line) or PDFService.is_likely_equation_line(line):
+                    equation_lines = [line]
+                    orig_i = i
+                    i += 1
+                    while i < len(lines):
+                        next_line = lines[i].strip()
+                        if not next_line:
+                            break
+                        if SECTION_PATTERN.match(next_line) or CAPTION_PATTERN.match(next_line) or equation_pattern.match(next_line):
+                            break
+                        if PDFService.is_likely_equation_line(next_line):
+                            equation_lines.append(next_line)
+                            i += 1
+                        else:
+                            # For non-highly math lines, stop unless it's part of labeled
+                            if equation_pattern.match(line):  # if started with label, collect one more if short
+                                if len(next_line) < 50:
+                                    equation_lines.append(next_line)
+                                    i += 1
+                                else:
+                                    break
+                            else:
+                                break
+                    equation_raw = "\n".join(equation_lines)
 
-                prev_ctx = lines[max(0, i - context_window):i]
-                next_ctx = lines[i + 1:i + 1 + context_window]
+                    prev_ctx = [lines[j].strip() for j in range(max(0, orig_i - context_window), orig_i) if lines[j].strip()]
+                    next_ctx = [lines[j].strip() for j in range(i, min(len(lines), i + context_window)) if lines[j].strip()]
 
-                equations.append({
-                    "equation_raw": line_strip,
-                    "prev_text": " ".join(prev_ctx).strip(),
-                    "next_text": " ".join(next_ctx).strip(),
-                    "section": section,
-                    "page": page,
-                })
+                    equations.append({
+                        "equation_raw": equation_raw,
+                        "prev_text": " ".join(prev_ctx),
+                        "next_text": " ".join(next_ctx),
+                        "section": section,
+                        "page": page,
+                    })
+                else:
+                    i += 1
 
         return equations
 
@@ -325,7 +361,6 @@ class IngestService:
                             **base_metadata,
                             "type": "text",
                             "section": section,
-                            "chunk_index": chunk_index,
                         }
                     )
                 )
@@ -336,9 +371,7 @@ class IngestService:
     @staticmethod
     def chunk_figure(
         figures: list,
-        paper_id: int,
-        collection_id: int,
-        pdf_url: str = "",
+        arxiv_id: int,
         generate_description: bool = True
     ) -> list[Document]:
 
@@ -367,12 +400,9 @@ class IngestService:
 
             metadata = {
                 "type": "figure",
-                "paper_id": paper_id,
-                "collection_id": collection_id,
-                "figure_id": fig["figure_id"],
+                "arxiv_id": arxiv_id,
                 "section": fig.get("section") or "unknown",
                 "page": fig.get("page"),
-                "pdf_url": pdf_url,
                 "figure_kind": fig_type,
             }
 
@@ -383,9 +413,7 @@ class IngestService:
     @staticmethod
     def chunk_table(
         tables: list,
-        paper_id: int,
-        collection_id: int,
-        pdf_url: str = "",
+        arxiv_id: int,
         generate_description: bool = True
     ) -> list[Document]:
 
@@ -415,12 +443,9 @@ class IngestService:
 
             metadata = {
                 "type": "table",
-                "paper_id": paper_id,
-                "collection_id": collection_id,
-                "table_id": tbl["table_id"],
+                "arxiv_id": arxiv_id,
                 "section": tbl.get("section") or "unknown",
                 "page": tbl.get("page"),
-                "pdf_url": pdf_url,
                 "table_kind": table_type
             }
 
@@ -431,9 +456,7 @@ class IngestService:
     @staticmethod
     def chunk_equation(
         equations: list,
-        paper_id: int,
-        collection_id: int,
-        pdf_url: str = "",
+        arxiv_id: int,
     ) -> list[Document]:
 
         docs = []
@@ -464,13 +487,9 @@ class IngestService:
 
             metadata = {
                 "type": "equation",
-                "level": 2,
-                "paper_id": paper_id,
-                "collection_id": collection_id,
+                "arxiv_id": arxiv_id,
                 "section": eq.get("section") or "unknown",
                 "page": eq.get("page"),
-                "equation_index": i,
-                "pdf_url": pdf_url,
             }
 
             docs.append(Document(
@@ -495,12 +514,9 @@ class IngestService:
         pdf_docs = PDFService.load_pdf_docs(pdf_path)
 
         base_metadata = {
-            "collection_id": collection_id,
             "arxiv_id": arxiv_id,
             "title": meta.get("title"),
-            "source": meta.get("source"),
-            "query": meta.get("query"),
-            "pdf_url": pdf_url,
+            "query": meta.get("query", ""),
         }
 
         text_chunks = IngestService.chunk_text(
@@ -510,23 +526,17 @@ class IngestService:
 
         figure_chunks = IngestService.chunk_figure(
             PDFService.extract_figures_from_docs(pdf_docs),
-            paper_id=None, 
-            collection_id=collection_id,
-            pdf_url=pdf_url,
+            arxiv_id=arxiv_id
         )
 
         table_chunks = IngestService.chunk_table(
             PDFService.extract_tables_from_docs(pdf_docs),
-            paper_id=None,
-            collection_id=collection_id,
-            pdf_url=pdf_url,
+            arxiv_id=arxiv_id
         )
 
         equation_chunks = IngestService.chunk_equation(
             PDFService.extract_equations_from_docs(pdf_docs),
-            paper_id=None,
-            collection_id=collection_id,
-            pdf_url=pdf_url,
+            arxiv_id=arxiv_id,
         )
 
         logger.info({

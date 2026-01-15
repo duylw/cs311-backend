@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 class AxisModel(BaseModel):
     axis: str = Field(..., description="Name of the research axis")
-    example_queries: List[str] = Field(
+    queries: List[str] = Field(
         default_factory=list,
         description="Simple, searchable sub-queries"
     )
