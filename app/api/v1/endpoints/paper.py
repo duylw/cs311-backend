@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from typing import Optional, List
 
 from app.api.deps import get_db
-from app.schemas.paper import PaperResponse
+from app.schemas.paper import PaperResponse, PaperDeleteResponse
 from app.services.paper_service import paper_service
 from app.repositories.collection import collection_repository
 
@@ -44,9 +44,8 @@ def list_papers(
 
 @router_papers.delete(
     "/collections/{collection_id}/papers/{paper_id}",
-    status_code=204
 )
-def delete_paper(
+def delete_paper_from_collection(
     collection_id: int,
     paper_id: int,
     db: Session = Depends(get_db),
@@ -54,10 +53,12 @@ def delete_paper(
     """Delete a paper from a collection"""
     collection_repository.get_or_404(db, collection_id)
     
-    paper_service.delete_paper(db, paper_id, collection_id)
-    
-    return None
+    paper_service.delete_paper_from_collection(db, paper_id, collection_id)
 
+    return PaperDeleteResponse(
+        id=paper_id,
+        message="Paper deleted successfully"
+    )
 def parse_authors(authors_str: str | None) -> list[str]:
     if not authors_str:
         return []

@@ -48,7 +48,7 @@ Given a SIMPLE query, enhance it to improve retrieval quality while keeping it a
 # EXAMPLES
 
 **Computer Science / AI:**
-**Input:** "wat is transformr?"
+**Input:** "ưhat is transformer?"
 **Output:** "Transformer architecture"
 
 **Input:** "how bert works"

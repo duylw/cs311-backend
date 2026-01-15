@@ -52,3 +52,25 @@ class CollectionService:
             "unique_papers": len(docs),
             "total_papers": new_total,
         }
+
+    @staticmethod
+    def delete_collection(
+        collection_id: int,
+        db: Session,
+        index_name: str,
+    ):
+        # Delete from Pinecone
+        IngestService.delete_collection_from_vector_store(
+            index_name=index_name,
+            collection_id=collection_id,
+        )
+
+        # Delete from DB
+        collection_repository.delete(db, collection_id)
+
+        logger.info(f"Collection {collection_id} deleted successfully.")
+
+        return {
+            "id": collection_id,
+            "message": "Collection deleted successfully."
+        }

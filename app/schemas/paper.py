@@ -28,6 +28,9 @@ class PaperCreate(PaperBase):
             raise ValueError("authors cannot be an empty list")
         return v
 
+class PaperDeleteResponse(BaseModel):
+    id: int
+    message: str
 
 class PaperResponse(PaperBase):
     id: int

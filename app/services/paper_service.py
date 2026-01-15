@@ -21,7 +21,7 @@ class PaperService:
         )
 
     @staticmethod
-    def delete_paper(db: Session, paper_id: int, collection_id: int) -> bool:
+    def delete_paper_from_collection(db: Session, paper_id: int, collection_id: int) -> bool:
         """Delete a paper from a collection"""
         # Get paper or raise 404
         paper = paper_repository.get_or_404(db, paper_id)
@@ -36,4 +36,6 @@ class PaperService:
         pinecone_manager.delete_document_of_collection(settings.PINECONE_INDEX_NAME, collection_id, paper.arxiv_id)
 
         return paper_repository.delete(db, paper_id)
+    
+
 paper_service = PaperService()
