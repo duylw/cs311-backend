@@ -17,7 +17,9 @@ class Settings(BaseSettings):
     DESCRIPTION: str = "Production RAG system for research papers"
 
     # CORS
-    BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8000"]
+    BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000",
+                                       "http://localhost:8000",
+                                       "http://localhost:5173"]
     
     @field_validator("BACKEND_CORS_ORIGINS")
     def assemble_cors_origins(cls, v):
@@ -27,10 +29,11 @@ class Settings(BaseSettings):
 
     # Allow any database URL (Postgres, SQLite, etc.) — set via env `DATABASE_URL`.
     DATABASE_URL: Optional[str] = Field(default=None, env="DATABASE_URL")
+    LANGGRAPH_CHECKPOINT_URL: Optional[str] = Field(default=None, env="LANGGRAPH_CHECKPOINT_URL")
 
     # Vector Databse
     PINECONE_API_KEY: Optional[SecretStr] = Field(default=None, env="PINECONE_API_KEY")
-    PINECONE_INDEX_NAME: Optional[str] = Field(default=None, env="PINECONE_INDEX_NAME")    
+    PINECONE_INDEX_NAME: Optional[str] = Field(default="collection", env="PINECONE_INDEX_NAME")    
 
     # File Storage
     UPLOAD_DIR: Path = Field(default=Path("./data/uploads"))
@@ -50,6 +53,8 @@ class Settings(BaseSettings):
     )
     GOOGLE_GCP_API_KEY: Optional[SecretStr] = Field(default=None, env="GOOGLE_GCP_API_KEY")
     
+    GOOGLE_CSE_ID: Optional[str] = Field(default=None, env="GOOGLE_CSE_ID")
+
     # Ollama Configuration
     LLM_PROVIDER: str = Field(default="ollama", env="LLM_PROVIDER")  # ollama, openai, etc.
     OLLAMA_BASE_URL: str = Field(default="http://localhost:11434", env="OLLAMA_BASE_URL")

@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+import os
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from loguru import logger
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 
 from app.vector_store.pinecone_store_manager import pinecone_manager
 from app.api.deps import get_db
@@ -10,6 +11,7 @@ from app.schemas.collection import (
     CollectionUpdate,
     CollectionResponse,
     CollectionStats,
+    CollectionDeleteResponse
 )
 from app.schemas.ingest import (
     IngestTopicRequest,
@@ -18,8 +20,15 @@ from app.schemas.ingest import (
 
 from app.services.collection_service import CollectionService
 from app.repositories.collection import collection_repository
+from app.repositories.chat_log import chat_log_repository
 from app.vector_store import pinecone_store_manager
 from app.core.config import settings
+
+import sqlite3
+from langgraph.checkpoint.sqlite import SqliteSaver
+
+from app.services.retrieval_graph import chatbot
+
 
 router = APIRouter()
 
@@ -88,7 +97,7 @@ async def update_collection(
     
     return updated
 
-@router.delete("/{collection_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{collection_id}", response_model=CollectionDeleteResponse)
 async def delete_collection(
     collection_id: int,
     db: Session = Depends(get_db)
@@ -110,7 +119,24 @@ async def delete_collection(
     except Exception:
         logger.exception("Failed to delete collection from Pinecone for collection_id=%s", collection_id)
 
-    return None
+    try:
+        # Delete Thread of ChatBot on Collection Deletion
+        logger.info("Deleting chatbot thread for collection %s", collection_id)
+        
+        db_path = settings.LANGGRAPH_CHECKPOINT_URL.replace("sqlite:///", "")
+
+        # Ensure directory exists
+        conn = sqlite3.connect(db_path, check_same_thread=False)
+        checkpointer = SqliteSaver(conn)
+
+        checkpointer.delete_thread(collection_id)
+    except Exception:
+        logger.exception("Failed to delete chatbot thread for collection_id=%s", collection_id)
+
+    return CollectionDeleteResponse(
+        id=collection_id,
+        message="Collection deleted successfully"
+    )
 
 @router.post(
     "/{collection_id}/ingest-topic",
@@ -167,3 +193,30 @@ async def ingest_topic(
         status="success",
     )
 
+@router.get("/{collection_id}/chat-history")
+async def get_chat_history(
+    collection_id: int,
+    limit: int = Query(default=10, ge=1, le=100),
+    db: Session = Depends(get_db)
+):
+    """
+    Get chat history
+    
+    - **collection_id**: Filter by collection
+    - **limit**: Number of recent chat messages to return
+    """
+    logs = chat_log_repository.get_with_collection(collection_id=collection_id, limit=limit, db=db)
+    
+    return {
+        'total': len(logs),
+        'messages': [
+            {
+                'id': log.id,
+                'text': log.text,
+                'role': log.role,
+                'collection_id': log.collection_id,
+                'created_at': log.created_at
+            }
+            for log in logs
+        ]
+    }

@@ -15,6 +15,9 @@ wheels/
 # Data
 data/
 
+# Evaluate
+evaluation/
+
 # .env files
 .env
 
