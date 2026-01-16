@@ -5,9 +5,8 @@ from uuid import uuid4
 from loguru import logger
 from sqlalchemy.orm import Session
 
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
-from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import UnstructuredPDFLoader
 
 from app.vector_store.pinecone_store_manager import pinecone_manager
 from app.models.paper import Paper
@@ -16,7 +15,7 @@ from app.core.config import settings
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from app.core.heuristic_config import FIGURE_CONFIG, TABLE_CONFIG   
 SECTION_PATTERN = re.compile(
-    r"^(\d+(\.\d+)*\s+)?(Abstract|Introduction|Related Work|Method|Methods|Approach|Experiments|Results|Discussion|Conclusion|References)",
+    r"(\d+(\.\d+)*\s+)?(Abstract|Introduction|Related Work|Method|Methods|Approach|Experiments|Results|Discussion|Conclusion|References)",
     re.IGNORECASE
 )
 
@@ -103,26 +102,59 @@ class PDFService:
         if pdf_path.exists():
             return pdf_path
 
-        r = requests.get(pdf_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=30)
-        r.raise_for_status()
-        pdf_path.write_bytes(r.content)
-        return pdf_path
+        try:
+            r = requests.get(pdf_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=30)
+            r.raise_for_status()
+            pdf_path.write_bytes(r.content)
+            return pdf_path
+        except Exception as e:
+                alt_url = f"https://export.arxiv.org/pdf/{pdf_url.split('/')[-1]}"
+                try:
+                    r = requests.get(alt_url, headers={"User-Agent": "Mozilla/5.0"}, timeout = 30)
+                    r.raise_for_status()
+                    pdf_path.write_bytes(r.content)
+                    return pdf_path
+                except Exception as alt_e:
+                    logger.error(f"Alternative URL {alt_url} also failed: {alt_e}")
+                    raise ValueError(f"Failed to download PDF from {pdf_url} after retries and alternative URL")
 
     @staticmethod
     def load_pdf_docs(pdf_path: Path) -> list[Document]:
-        loader = PyPDFLoader(str(pdf_path))
+        loader = UnstructuredPDFLoader(str(pdf_path), mode="single", languages=["eng"])
         docs = loader.load()
+        if not docs:
+            return []
 
+        full_text = docs[0].page_content
+
+        section_docs = []
+        matches = list(re.finditer(SECTION_PATTERN, full_text))
+        prev_end = 0
         current_section = "unknown"
 
-        for doc in docs:
-            for line in doc.page_content.split("\n"):
-                if SECTION_PATTERN.match(line.strip()):
-                    current_section = line.strip()
-                    break
-            doc.metadata["section"] = current_section
+        for match in matches + [None]:
+            if match is None:
+                end = len(full_text)
+            else:
+                end = match.start()
 
-        return docs
+            section_text = full_text[prev_end:end].strip()
+            if section_text:
+                doc = Document(
+                    page_content=section_text,
+                    metadata={"section": current_section}
+                )
+                section_docs.append(doc)
+
+            if match is None:
+                break
+
+            num_part = match.group(1) or ""
+            section_name = match.group(3).title() if match.group(3) else ""
+            current_section = (num_part.strip() + " " + section_name).strip()
+            prev_end = match.end()
+
+        return section_docs
 
     @staticmethod
     def group_docs_by_section(docs: list[Document]) -> dict[str, list[str]]:
@@ -144,7 +176,6 @@ class PDFService:
         pattern = re.compile(r'^(Figure|Fig\.?)\s*((?:\d+|[IVXLCDM]+))[:.]?\s*(.*)', re.IGNORECASE)
 
         for doc in docs:
-            page = doc.metadata.get("page")
             section = doc.metadata.get("section", "unknown")
             lines = doc.page_content.split("\n")
 
@@ -186,7 +217,6 @@ class PDFService:
                         "prev_text": " ".join(prev_ctx),
                         "next_text": " ".join(next_ctx),
                         "section": section,
-                        "page": page
                     })
                 else:
                     i += 1
@@ -199,7 +229,6 @@ class PDFService:
         pattern = re.compile(r'^(Table)\s*((?:\d+|[IVXLCDM]+))[:.]?\s*(.+)', re.IGNORECASE)
 
         for doc in docs:
-            page = doc.metadata.get("page")
             section = doc.metadata.get("section", "unknown")
             lines = doc.page_content.split("\n")
 
@@ -246,7 +275,6 @@ class PDFService:
                         "prev_text": " ".join(prev_ctx),
                         "next_text": " ".join(next_ctx),
                         "section": section,
-                        "page": page
                     })
                 else:
                     i += 1
@@ -277,14 +305,22 @@ class PDFService:
             (^Eq\.?\s*\(?\d+\)?[:.]?) |
             (^Equation\s*\(?\d+\)?[:.]?) |
             (^\(?\d+\)?\s*=\s*.+) |
+            (^Formula\s*\(?\d+\)?[:.]?) |
+            (^Expression\s*\(?\d+\)?[:.]?) |
             (\\begin\{equation\}) |
+            (\\begin\{align\}) |
+            (\\begin\{eqnarray\}) |
+            (\\begin\{gather\}) |
+            (\\begin\{multline\}) |
+            (\\\[\s*) |        
+            (\s*\\\]) |    
             (\$\$)
             """,
             re.VERBOSE | re.IGNORECASE
         )
 
+
         for doc in docs:
-            page = doc.metadata.get("page")
             section = doc.metadata.get("section", "unknown")
             lines = doc.page_content.split("\n")
 
@@ -325,7 +361,6 @@ class PDFService:
                         "prev_text": " ".join(prev_ctx),
                         "next_text": " ".join(next_ctx),
                         "section": section,
-                        "page": page,
                     })
                 else:
                     i += 1
@@ -371,7 +406,7 @@ class IngestService:
     @staticmethod
     def chunk_figure(
         figures: list,
-        arxiv_id: int,
+        arxiv_id: str,
         generate_description: bool = True
     ) -> list[Document]:
 
@@ -402,7 +437,6 @@ class IngestService:
                 "type": "figure",
                 "arxiv_id": arxiv_id,
                 "section": fig.get("section") or "unknown",
-                "page": fig.get("page"),
                 "figure_kind": fig_type,
             }
 
@@ -413,7 +447,7 @@ class IngestService:
     @staticmethod
     def chunk_table(
         tables: list,
-        arxiv_id: int,
+        arxiv_id: str,
         generate_description: bool = True
     ) -> list[Document]:
 
@@ -445,7 +479,6 @@ class IngestService:
                 "type": "table",
                 "arxiv_id": arxiv_id,
                 "section": tbl.get("section") or "unknown",
-                "page": tbl.get("page"),
                 "table_kind": table_type
             }
 
@@ -456,12 +489,13 @@ class IngestService:
     @staticmethod
     def chunk_equation(
         equations: list,
-        arxiv_id: int,
+        arxiv_id: str,
     ) -> list[Document]:
 
         docs = []
 
         for i, eq in enumerate(equations):
+            equation_id = f"Equation {i+1}"
 
             explanation_parts = []
             if eq["prev_text"]:
@@ -477,6 +511,7 @@ class IngestService:
 
             content = "\n".join([
                 f"Section: {eq['section']}",
+                f"Equation ID: {equation_id}",
                 "",
                 "Context:",
                 explanation,
@@ -489,7 +524,6 @@ class IngestService:
                 "type": "equation",
                 "arxiv_id": arxiv_id,
                 "section": eq.get("section") or "unknown",
-                "page": eq.get("page"),
             }
 
             docs.append(Document(
