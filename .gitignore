@@ -32,3 +32,6 @@ package-lock.json
 package.json
 yarn.lock
 
+# Testing
+app/services/preprocess_and_ingest_graph.py
+app/services/search_graph.py
