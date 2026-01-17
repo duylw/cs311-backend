@@ -71,21 +71,21 @@ class Settings(BaseSettings):
     CHUNK_OVERLAP: int = Field(default=200, env="CHUNK_OVERLAP")
     
     # Search Configuration
-    TOP_K_PAPERS_PER_AXIS: int = Field(default=5, env="TOP_K_PAPERS_PER_AXIS")
-    TOP_K_PAPERS_PER_QUERY: int = Field(default=5, env="TOP_K_PAPERS_PER_QUERY")
+    TOP_K_PAPERS_PER_AXIS: int = Field(default=2, env="TOP_K_PAPERS_PER_AXIS")
+    TOP_K_PAPERS_PER_QUERY: int = Field(default=2, env="TOP_K_PAPERS_PER_QUERY")
     
     # Retrieval Configuration
     RETRIEVAL_TOP_K: int = Field(default=5, env="RETRIEVAL_TOP_K")
     RERANK_TOP_K: int = Field(default=10, env="RERANK_TOP_K")
-    USE_RERANKING: bool = Field(default=True, env="USE_RERANKING")
+    USE_RERANKING: bool = Field(default=False, env="USE_RERANKING")
     MIN_RERANK_SCORE: float = Field(default=5.0, env="MIN_RERANK_SCORE")
     
     # Logging
     LOG_LEVEL: str = Field(default="INFO", env="LOG_LEVEL")
     LOG_FILE: Optional[str] = Field(default="logs/app.log", env="LOG_FILE")
 
-    MAX_AXES: int = Field(default=5, env="MAX_AXES")
-    MAX_QUERIES_PER_AXIS: int = Field(default=3, env="MAX_QUERIES_PER_AXIS")
+    MAX_AXES: int = Field(default=3, env="MAX_AXES")
+    MAX_QUERIES_PER_AXIS: int = Field(default=2, env="MAX_QUERIES_PER_AXIS")
 
     model_config = ConfigDict(
         env_file=".env",

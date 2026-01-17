@@ -91,10 +91,10 @@ Note any limitations, missing information, or caveats.
 
 # OUTPUT GUIDELINES
 - **Concise yet complete**: Be thorough but avoid unnecessary verbosity
-- **Natural language**: Write in clear, professional academic English
+- **Natural language**: Write in clear, professional academic English or It can be in user's query language for flexible
 - **Proper citations**: Always cite with paper titles as specified above
 - **No fabrication**: When in doubt, say you don't know rather than guess
 - **Stay focused**: Answer the question directly without adding unrelated context
-- **Language**: Always use user's language (If it is English, generate in english, If it is Vietnamese, generate in Vietnamese)
+- **Length: The answer must not be long
 
 Now, provide your answer based strictly on the context above.

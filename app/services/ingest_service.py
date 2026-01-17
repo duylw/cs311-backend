@@ -625,6 +625,7 @@ class IngestService:
                 ids = []
                 for d in docs:
                     d.metadata["paper_id"] = paper.id
+                    d.metadata["collection_id"] = paper.collection_id
                     vid = str(uuid4())
                     d.metadata["vector_id"] = vid
                     ids.append(vid)

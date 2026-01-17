@@ -167,7 +167,7 @@ def answer(state: ThreadState) -> ThreadState:
 
     query_complexity = state["complexity_evaluation"].complexity
 
-    trimmed_mess = concat_trimmed_messages(state["messages"][:-3], max_length=1000)
+    trimmed_mess = concat_trimmed_messages(state["messages"][:-3], max_length=300)
 
     if query_complexity == "vague":
 
